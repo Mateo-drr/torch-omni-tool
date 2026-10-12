@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 # 2. Project Metadata (PEP 621) — Package details and dependencies
 [project]
 name = "torch-omni-tool"
-version = "0.1.0"
+version = "0.1.1"
 description = "Collection of pytorch tools and blocks"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -40,6 +40,10 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/Mateo-drr/torch-omni-tool"
 Repository = "https://github.com/Mateo-drr/torch-omni-tool.git"
+
+# Wheel contents — explicit so all subpackages and py.typed ship in the dist
+[tool.hatch.build.targets.wheel]
+packages = ["torch_omni_tool"]
 
 # 3. Tool Configurations — Specific tool settings consolidated in one place
 

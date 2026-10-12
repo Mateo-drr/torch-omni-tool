@@ -32,12 +32,18 @@ so installing it is not needed to use the blocks.
 | [`tests/`](tests/README.md) | Pytest suite (currently the GRN block) |
 
 Each folder has its own README with the details, tensor shapes and references. Every
-`__init__.py` is empty, so blocks are imported from their leaf module:
+subpackage `__init__.py` re-exports its public API (with `__all__`), so blocks are imported
+from their subpackage. The leaf-module paths still work too:
 
 ```python
-from torch_omni_tool.blocks.SEB.SEB import SEBlock
-from torch_omni_tool.blocks.ConvNeXtV2.GRN import GRN
+from torch_omni_tool.blocks import SEBlock, GRN
+from torch_omni_tool.normalizations import LayerNorm
+from torch_omni_tool.blocks.ConvNeXtV2.GRN import GRN  # leaf path, also valid
 ```
+
+The root `torch_omni_tool` package stays thin (`import torch_omni_tool` exposes the
+subpackages, not the classes). A `py.typed` marker is shipped (PEP 561), so type checkers
+and IDEs use the inline type hints.
 
 Note the inconsistent casing in the paths (`RRDB_2D.py` vs `RRDB_3d.py`) and the typo in
 `normalizations/layern_norm_2d.py`.
@@ -46,18 +52,23 @@ Note the inconsistent casing in the paths (`RRDB_2D.py` vs `RRDB_3d.py`) and the
 
 | Block | Input | Import |
 | --- | --- | --- |
-| `ConvNeXtBlock` | `[B, C, H, W]` | `torch_omni_tool.blocks.ConvNeXtV2.ConvNeXtV2` |
-| `GRN` | `[B, C, H, W]` | `torch_omni_tool.blocks.ConvNeXtV2.GRN` |
-| `MoDE`, `MoDEConv2D` | `[B, C, H, W]` | `torch_omni_tool.blocks.RepMoDE.RepMoDE_2d` |
-| `MoDEConv`, encoder/decoder blocks | `[B, C, L]` and `[B, C, D, H, W]` | `torch_omni_tool.blocks.RepMoDE.RepMoDE_1d` / `RepMoDE_3d` |
-| `RRDB`, `RRDB_3D` | `[B, C, H, W]`, `[B, C, D, H, W]` | `torch_omni_tool.blocks.RRDB.RRDB_2D` / `RRDB_3d` |
-| `SEBlock` | `[B, C, H, W]` | `torch_omni_tool.blocks.SEB.SEB` |
-| `PositionEmbeddingSine` | `[B, C, H, W]` | `torch_omni_tool.blocks.ViT.position_embedding_sine` |
-| `Snake` | `[B, C, H, W]` | `torch_omni_tool.activations.snake` |
+| `ConvNeXtBlock` | `[B, C, H, W]` | `torch_omni_tool.blocks.ConvNeXtV2` |
+| `GRN` | `[B, C, H, W]` | `torch_omni_tool.blocks.ConvNeXtV2` |
+| `MoDE`, `MoDEConv2D` | `[B, C, H, W]` | `torch_omni_tool.blocks.RepMoDE` |
+| `MoDEConv1D`, `MoDEConv3D`, encoder/decoder blocks | `[B, C, L]` and `[B, C, D, H, W]` | `torch_omni_tool.blocks.RepMoDE` |
+| `RRDB`, `RRDB_3D` | `[B, C, H, W]`, `[B, C, D, H, W]` | `torch_omni_tool.blocks.RRDB` |
+| `SEBlock` | `[B, C, H, W]` | `torch_omni_tool.blocks.SEB` |
+| `PositionEmbeddingSine` | `[B, C, H, W]` | `torch_omni_tool.blocks.ViT` |
+| `Snake` | `[B, C, H, W]` | `torch_omni_tool.activations` |
+
+The RepMoDE 1D/3D variants share class names in their leaf modules, so each subpackage
+re-exports them with dimensional aliases: `MoDEConv1D` / `MoDEConv3D`,
+`MoDEDecoderBlock1D` / `MoDEDecoderBlock3D`, `MoDEEncoderBlock1D` / `MoDEEncoderBlock3D`,
+`MoDESubNet2Conv1D` / `MoDESubNet2Conv3D`.
 
 ```python
 import torch
-from torch_omni_tool.blocks.ConvNeXtV2.GRN import GRN
+from torch_omni_tool.blocks import GRN
 
 y = GRN(64)(torch.randn(2, 64, 56, 56))  # [2, 64, 56, 56]
 ```
