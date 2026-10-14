@@ -1,6 +1,6 @@
 site_name: torch-omni-tool
 site_description: A small PyTorch library of reusable network blocks and layers
-site_url: https://Mateo-drr.github.io/torch-omni-tool/
+site_url: https://mateo-drr.github.io/torch-omni-tool/
 repo_url: https://github.com/Mateo-drr/torch-omni-tool
 repo_name: Mateo-drr/torch-omni-tool
 edit_uri: edit/main/docs/
