@@ -1,7 +1,9 @@
 site_name: torch-omni-tool
 site_description: A small PyTorch library of reusable network blocks and layers
+site_url: https://Mateo-drr.github.io/torch-omni-tool/
 repo_url: https://github.com/Mateo-drr/torch-omni-tool
 repo_name: Mateo-drr/torch-omni-tool
+edit_uri: edit/main/docs/
 
 nav:
   - Home: index.md
@@ -20,21 +22,78 @@ nav:
 
 theme:
   name: material
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  language: en
   features:
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
-    - toc.integrate
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - toc.follow
     - search.suggest
     - search.highlight
     - content.code.copy
+    - content.code.select
+    - content.action.edit
+    - content.action.view
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep orange
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep orange
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Mateo-drr/torch-omni-tool
+      name: GitHub repository
 
 markdown_extensions:
   - admonition
+  - attr_list
+  - md_in_html
   - footnotes
   - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
   - pymdownx.highlight:
       anchor_linenums: true
-  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 plugins:
   - search

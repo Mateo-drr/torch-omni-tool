@@ -1,0 +1,20 @@
+/* Softer, more modern surfaces */
+.md-typeset pre > code {
+  border-radius: 0.25rem;
+}
+
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid.cards > ol > li {
+  border-radius: 0.35rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.md-typeset .grid.cards > ul > li:hover,
+.md-typeset .grid.cards > ol > li:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.08);
+}
+
+.md-typeset .grid.cards {
+  margin-top: 1.5rem;
+}
