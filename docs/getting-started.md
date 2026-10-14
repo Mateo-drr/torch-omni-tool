@@ -14,12 +14,6 @@ For building documentation locally:
 pip install -e ".[docs]"
 ```
 
-For optional Weights & Biases logging (only needed if `Config.wb` is enabled):
-
-```bash
-pip install -e ".[wandb]"
-```
-
 Requires Python >= 3.12.
 
 ## Activate Environment
@@ -32,24 +26,21 @@ If using the repo's virtual environment:
 
 ## Quick Verification
 
-Check configuration defaults:
+Import a block and run a forward pass:
 
-```bash
-python -m torch_omni_tool.config
+```python
+import torch
+from torch_omni_tool.blocks import GRN
+
+x = torch.randn(2, 64, 56, 56)
+y = GRN(64)(x)
+print(y.shape)          # torch.Size([2, 64, 56, 56])
 ```
-
-Run the training scaffold (uses intra-package imports correctly as a module):
-
-```bash
-python -m torch_omni_tool.training
-```
-
-> Note: Always run as `python -m torch_omni_tool.*` from the repo root. Running scripts directly (e.g. `python torch_omni_tool/training.py`) may fail due to intra-package imports.
 
 ## Development Tools
 
 ```bash
-pytest             # Run tests (currently none)
-mypy torch_omni_tool     # Type check (strict mode)
-pylint torch_omni_tool   # Linting
+pytest                       # Run tests
+mypy torch_omni_tool         # Type check (strict mode)
+pylint torch_omni_tool       # Linting
 ```

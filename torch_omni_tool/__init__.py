@@ -1,4 +1,4 @@
-"""Reusable PyTorch blocks, layers and training utilities.
+"""Reusable PyTorch blocks, layers and utilities.
 
 Public APIs live in the subpackages (mirroring the on-disk layout)::
 

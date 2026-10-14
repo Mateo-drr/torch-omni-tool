@@ -1,7 +1,6 @@
 # torch-omni-tool
 
-A small PyTorch library of reusable network blocks plus a minimal training scaffold
-(config, dataloaders, train/eval loops, logging helpers).
+A small PyTorch library of reusable network blocks and layers.
 
 Everything is plain `nn.Module` code with type hints and no framework dependencies, so
 blocks can be copied into any project or imported from here.
@@ -15,34 +14,28 @@ Full documentation is available at [GitHub Pages](https://Mateo-drr.github.io/to
 ```bash
 pip install -e ".[dev]"      # runtime + pytest / pylint / mypy / black / types-tqdm
 pip install -e ".[docs]"     # docs dependencies
-pip install -e ".[wandb]"    # adds the optional Weights & Biases logging dependency
 ```
 
-Requires Python >= 3.12. `wandb` is optional and only imported when `Config.wb` is enabled,
-so installing it is not needed to use the blocks.
+Requires Python >= 3.12.
 
 ## What is inside
 
 | Path | Contents |
 | --- | --- |
-| `mltools.blocks` | Network blocks: ConvNeXt V2, GRN, RepMoDE, RRDB, Squeeze-and-Excite, ViT positional embeddings |
-| `mltools.activations` | Activation layers: the periodic `Snake` activation |
-| `mltools.normalizations` | `LayerNorm` for `[b, c, h, w]` and `[b, h, w, c]` |
-| `mltools.datasets` | `Dataset` / `DataLoader` factory and 2D/3D augmentations |
-| `mltools.config` | `Config` dataclass plus a module-level `config` singleton |
-| `mltools.model` | `SampleNet`, a placeholder autoencoder-style model |
-| `mltools.loops` | `run_model`, `train_loop`, `eval_loop` |
-| `mltools.utils` | Timing, metric formatting and epoch bookkeeping helpers |
-| `mltools.training` | Entry point that wires the pieces together |
+| `torch_omni_tool.blocks` | Network blocks: ConvNeXt V2, GRN, RepMoDE, RRDB, Squeeze-and-Excite, ViT positional embeddings |
+| `torch_omni_tool.activations` | Activation layers: the periodic `Snake` activation |
+| `torch_omni_tool.normalizations` | `LayerNorm` for `[b, c, h, w]` and `[b, h, w, c]` |
+| `torch_omni_tool.datasets` | `Dataset` / `DataLoader` factory and 2D/3D augmentations |
+| `torch_omni_tool.utils` | Timing and metric formatting helpers |
 | [`tests/`](tests/README.md) | Pytest suite (currently the GRN block) |
 
 Each subpackage `__init__.py` re-exports its public API (with `__all__`), so blocks are imported
 from their subpackage. The leaf-module paths still work too:
 
 ```python
-from mltools.blocks import SEBlock, GRN
-from mltools.normalizations import LayerNorm
-from mltools.blocks.ConvNeXtV2.GRN import GRN  # leaf path, also valid
+from torch_omni_tool.blocks import SEBlock, GRN
+from torch_omni_tool.normalizations import LayerNorm
+from torch_omni_tool.blocks.ConvNeXtV2.GRN import GRN  # leaf path, also valid
 ```
 
 The root `torch_omni_tool` package stays thin (`import torch_omni_tool` exposes the
@@ -56,14 +49,14 @@ Note the inconsistent casing in the paths (`RRDB_2D.py` vs `RRDB_3d.py`) and the
 
 | Block | Input | Import |
 | --- | --- | --- |
-| `ConvNeXtBlock` | `[B, C, H, W]` | `mltools.blocks.ConvNeXtV2` |
-| `GRN` | `[B, C, H, W]` | `mltools.blocks.ConvNeXtV2` |
-| `MoDE`, `MoDEConv2D` | `[B, C, H, W]` | `mltools.blocks.RepMoDE` |
-| `MoDEConv1D`, `MoDEConv3D`, encoder/decoder blocks | `[B, C, L]` and `[B, C, D, H, W]` | `mltools.blocks.RepMoDE` |
-| `RRDB`, `RRDB_3D` | `[B, C, H, W]`, `[B, C, D, H, W]` | `mltools.blocks.RRDB` |
-| `SEBlock` | `[B, C, H, W]` | `mltools.blocks.SEB` |
-| `PositionEmbeddingSine` | `[B, C, H, W]` | `mltools.blocks.ViT` |
-| `Snake` | `[B, C, H, W]` | `mltools.activations` |
+| `ConvNeXtBlock` | `[B, C, H, W]` | `torch_omni_tool.blocks.ConvNeXtV2` |
+| `GRN` | `[B, C, H, W]` | `torch_omni_tool.blocks.ConvNeXtV2` |
+| `MoDE`, `MoDEConv2D` | `[B, C, H, W]` | `torch_omni_tool.blocks.RepMoDE` |
+| `MoDEConv1D`, `MoDEConv3D`, encoder/decoder blocks | `[B, C, L]` and `[B, C, D, H, W]` | `torch_omni_tool.blocks.RepMoDE` |
+| `RRDB`, `RRDB_3D` | `[B, C, H, W]`, `[B, C, D, H, W]` | `torch_omni_tool.blocks.RRDB` |
+| `SEBlock` | `[B, C, H, W]` | `torch_omni_tool.blocks.SEB` |
+| `PositionEmbeddingSine` | `[B, C, H, W]` | `torch_omni_tool.blocks.ViT` |
+| `Snake` | `[B, C, H, W]` | `torch_omni_tool.activations` |
 
 The RepMoDE 1D/3D variants share class names in their leaf modules, so each subpackage
 re-exports them with dimensional aliases: `MoDEConv1D` / `MoDEConv3D`,
@@ -72,39 +65,17 @@ re-exports them with dimensional aliases: `MoDEConv1D` / `MoDEConv3D`,
 
 ```python
 import torch
-from mltools.blocks import GRN
+from torch_omni_tool.blocks import GRN
 
 y = GRN(64)(torch.randn(2, 64, 56, 56))  # [2, 64, 56, 56]
 ```
 
-## Configuration and training
-
-`Config` holds every hyperparameter and option of a run; there is no config file or CLI
-parsing, so edit the dataclass defaults or override attributes on the `config` singleton.
-Print the defaults with:
-
-```bash
-python -m mltools.config
-```
-
-Run the scaffold:
-
-```bash
-python -m mltools.training
-```
-
-The flow is `training.py` → `make_dl` → `SampleNet` → `loops.train_loop` /
-`loops.eval_loop` → `utils.finish_epoch`, with `torch.amp.autocast` and `GradScaler` when
-`config.half_p` is set. The loss is autoencoder-style (`criterion(samples["data"], output)`),
-so the target is the input. The training body sits inside an `if __name__ == "__main__"`
-guard, so importing the module has no side effects.
-
 ## Development
 
 ```bash
-pytest             # tests/ (testpaths set in pyproject.toml)
-mypy mltools       # strict mode over mltools/
-pylint mltools
+pytest                      # tests/ (testpaths set in pyproject.toml)
+mypy torch_omni_tool        # strict mode over torch_omni_tool/
+pylint torch_omni_tool
 ```
 
 CI (`.github/workflows/ci.yml`) runs Python 3.12 on Ubuntu: install, pylint, mypy and
@@ -121,10 +92,8 @@ remaining warnings are fixed.
   from `torch.stack`.
 - `augmentations_3d.random_local_rotation_3d` expects a 4D `[b, 1, H, W]` chunk and a 2D
   label; 5D volumes raise `RuntimeError`.
-- `training.py` builds a scheduler but passes `scheduler=None` to `train_loop`, so it never
-  steps.
-- In `RepMoDE_3d.MoDEConv` (and `RepMoDE_1d.MoDEConv` outside training), `eval()` mode uses
-  only the first task's expert weights for the whole batch.
+- In `RepMoDE_3d.MoDEConv` (and `RepMoDE_1d.MoDEConv` in `eval()` mode), only the first
+  task's expert weights are used for the whole batch.
 - See the folder READMEs for block specific caveats.
 
 ## References

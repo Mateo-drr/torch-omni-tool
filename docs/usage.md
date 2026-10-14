@@ -1,45 +1,59 @@
 # Usage
 
-## Configuration
-
-`torch_omni_tool.config.Config` holds all hyperparameters and options for a run. The module provides a `config` singleton that training code uses. There is no CLI or config file parsing; override attributes on the singleton or edit defaults as needed.
-
-Print defaults:
-
-```bash
-python -m torch_omni_tool.config
-```
-
-## Training
-
-The scaffold wires together config, data loading, model, and loops. Run it with:
-
-```bash
-python -m torch_omni_tool.training
-```
-
-Flow: `training.py` → `make_dl()` (from `torch_omni_tool.datasets`) → `SampleNet` → `loops.train_loop()` / `loops.eval_loop()` → `utils.finish_epoch()`.
-
-Key details:
-- Uses `torch.amp.autocast(device_type=config.device)` and `torch.amp.GradScaler` when `config.half_p` is enabled.
-- Loss is autoencoder-style: `criterion(samples["data"], output)` so the target is the input.
-- Training body is guarded by `if __name__ == "__main__":` so importing has no side effects.
-- Scheduler is created in `training.py` but not passed to `train_loop` (see Known Issues in README context) — be aware if modifying.
-
-## Data Loading
-
-`torch_omni_tool.datasets.cstm_ds` provides `make_dl()`. The dataset returns samples with key `data` (e.g. `{'data': tensor}`), which is what `loops.run_model` expects.
-
 ## Imports
 
-Preferred: import from public subpackages.
+Prefer importing from the public subpackages:
 
 ```python
 from torch_omni_tool.blocks import SEBlock, GRN
 from torch_omni_tool.normalizations import LayerNorm
 from torch_omni_tool.activations import Snake
+from torch_omni_tool.datasets import make_dl
 ```
 
-Leaf paths also work if needed. Be consistent with existing naming (some files use `2D` vs `3d` casing).
+Leaf-module paths also work if needed. Be consistent with the existing naming (some files use
+`2D` vs `3d` casing).
 
-> Note: The normalization module filename is `layern_norm_2d.py` (typo). The import path is `torch_omni_tool.normalizations.layern_norm_2d` as used in code.
+> Note: The normalization module filename is `layern_norm_2d.py` (typo). The import path is
+> `torch_omni_tool.normalizations.layern_norm_2d`.
+
+## Blocks
+
+Every block is a standalone `nn.Module`, so it composes like any other layer:
+
+```python
+import torch
+from torch_omni_tool.blocks import ConvNeXtBlock, SEBlock
+
+x = torch.randn(2, 64, 56, 56)
+x = SEBlock(64)(x)          # [2, 64, 56, 56]
+x = ConvNeXtBlock(64)(x)    # [2, 64, 56, 56]
+```
+
+Many blocks come in dimension-specific variants (RepMoDE 1D/2D/3D, RRDB 2D/3D). Pick the
+variant that matches your spatial dimensions; see [Architecture](architecture.md) for the full
+list.
+
+## Datasets and Augmentations
+
+`torch_omni_tool.datasets` exposes the dataset / dataloader factory and the augmentations:
+
+```python
+from torch_omni_tool.datasets import (
+    CustomDataset,
+    make_dl,
+    cutmix,
+    random_local_rotation_2d,
+    random_local_rotation_3d,
+)
+```
+
+## Normalizations and Activations
+
+```python
+from torch_omni_tool.normalizations import LayerNorm
+from torch_omni_tool.activations import Snake
+```
+
+`LayerNorm` accepts `[b, c, h, w]` and `[b, h, w, c]` inputs. `Snake` is a periodic activation
+applied channel-wise.

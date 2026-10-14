@@ -1,5 +1,5 @@
 site_name: torch-omni-tool
-site_description: A small PyTorch library of reusable network blocks plus a minimal training scaffold
+site_description: A small PyTorch library of reusable network blocks and layers
 repo_url: https://github.com/Mateo-drr/torch-omni-tool
 repo_name: Mateo-drr/torch-omni-tool
 
@@ -12,10 +12,6 @@ nav:
   - API Reference:
       - Overview: api/index.md
       - torch_omni_tool: api/torch_omni_tool.md
-      - torch_omni_tool.config: api/torch_omni_tool.config.md
-      - torch_omni_tool.model: api/torch_omni_tool.model.md
-      - torch_omni_tool.training: api/torch_omni_tool.training.md
-      - torch_omni_tool.loops: api/torch_omni_tool.loops.md
       - torch_omni_tool.utils: api/torch_omni_tool.utils.md
       - torch_omni_tool.datasets: api/torch_omni_tool.datasets.md
       - torch_omni_tool.normalizations: api/torch_omni_tool.normalizations.md
