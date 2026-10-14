@@ -18,7 +18,7 @@ The scaffold wires together config, data loading, model, and loops. Run it with:
 python -m torch_omni_tool.training
 ```
 
-Flow: `training.py` → `make_dl()` (from `torch_omni_tool.datasets`) → `SampleNet` → `loops.train_loop()` / `loops.eval_loop()` → `utils.finish_epoch()`. 
+Flow: `training.py` → `make_dl()` (from `torch_omni_tool.datasets`) → `SampleNet` → `loops.train_loop()` / `loops.eval_loop()` → `utils.finish_epoch()`.
 
 Key details:
 - Uses `torch.amp.autocast(device_type=config.device)` and `torch.amp.GradScaler` when `config.half_p` is enabled.

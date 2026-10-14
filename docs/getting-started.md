@@ -35,21 +35,21 @@ If using the repo's virtual environment:
 Check configuration defaults:
 
 ```bash
-python -m mltools.config
+python -m torch_omni_tool.config
 ```
 
 Run the training scaffold (uses intra-package imports correctly as a module):
 
 ```bash
-python -m mltools.training
+python -m torch_omni_tool.training
 ```
 
-> Note: Always run as `python -m mltools.*` from the repo root. Running scripts directly (e.g. `python mltools/training.py`) may fail due to intra-package imports. 
+> Note: Always run as `python -m torch_omni_tool.*` from the repo root. Running scripts directly (e.g. `python torch_omni_tool/training.py`) may fail due to intra-package imports.
 
 ## Development Tools
 
 ```bash
 pytest             # Run tests (currently none)
-mypy mltools       # Type check (strict mode)
-pylint mltools     # Linting
+mypy torch_omni_tool     # Type check (strict mode)
+pylint torch_omni_tool   # Linting
 ```
