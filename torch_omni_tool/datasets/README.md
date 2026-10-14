@@ -1,6 +1,6 @@
 # Datasets
 
-Dataset / dataloader factory and 3D augmentations. The dataset here is a placeholder that
+Dataset / dataloader factory and 2D/3D augmentations. The dataset here is a placeholder that
 returns random tensors; swap its body for real data and the rest of the scaffold keeps
 working.
 
@@ -41,16 +41,48 @@ loader = make_dl(config, "train")
 samples = next(iter(loader))  # {"data": tensor}
 ```
 
+## `augmentations_2d.py`
+
+Augmentations for 2D data, for use with 2D convolutional models. Uses Python's `random`
+and `torchvision.transforms.functional` (`torchvision` is a core dependency).
+
+### `random_local_rotation_2d`
+
+```python
+random_local_rotation_2d(in_tensor, label, radius=16, p=0.5) -> tuple[torch.Tensor, torch.Tensor]
+```
+
+Rotates a random circular patch together with its label, so the two stay aligned. Each
+sample of the batch is drawn independently: it has a chance `p` of being augmented, and its
+own random square position and angle in `[20, 340]`. Unlike the 3D version, the label is
+batched and the function is a no-op for samples that are not selected.
+
+Args:
+
+- `in_tensor`: image batch `[b, c, h, w]`.
+- `label`: label batch `[b, h, w]`; integer labels are kept integer (rotated with nearest
+  interpolation), float labels keep their dtype.
+- `radius`: radius of the circular patch that gets rotated.
+- `p`: per-sample probability of applying the augmentation.
+
+Caveats:
+
+- Raises `ValueError` if `in_tensor` is not 4D, `label` is not 3D, or `2 * radius` does not
+  fit in the spatial dimensions.
+- Both tensors are modified in place.
+
+Reference: [Local Rotation Augmentation for 3D data](https://www.mdpi.com/2313-433X/9/2/46).
+
 ## `augmentations_3d.py`
 
 Augmentations for volumetric data. Both take and return `(chunk, label)` pairs, mutate or
 copy their inputs as noted below, and use Python's `random` plus `Pillow` (not declared in
 `pyproject.toml`) — `Pillow` is only needed if you import this module.
 
-### `random_local_rotation`
+### `random_local_rotation_3d`
 
 ```python
-random_local_rotation(in_tensor, tlbl, radius=16, p=0.5) -> tuple[torch.Tensor, torch.Tensor]
+random_local_rotation_3d(in_tensor, tlbl, radius=16, p=0.5) -> tuple[torch.Tensor, torch.Tensor]
 ```
 
 Applies the augmentation with probability `p`. A random square of side `2 * radius` is

@@ -15,7 +15,7 @@ import copy
 from PIL import Image, ImageDraw
 
 
-def random_local_rotation(
+def random_local_rotation_3d(
     in_tensor: torch.Tensor,
     tlbl: torch.Tensor,
     radius: int = 16,

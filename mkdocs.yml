@@ -1,0 +1,56 @@
+site_name: torch-omni-tool
+site_description: A small PyTorch library of reusable network blocks plus a minimal training scaffold
+repo_url: https://github.com/Mateo-drr/torch-omni-tool
+repo_name: Mateo-drr/torch-omni-tool
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Usage: usage.md
+  - Architecture: architecture.md
+  - Changelog: changelog.md
+  - API Reference:
+      - Overview: api/index.md
+      - torch_omni_tool: api/torch_omni_tool.md
+      - torch_omni_tool.config: api/torch_omni_tool.config.md
+      - torch_omni_tool.model: api/torch_omni_tool.model.md
+      - torch_omni_tool.training: api/torch_omni_tool.training.md
+      - torch_omni_tool.loops: api/torch_omni_tool.loops.md
+      - torch_omni_tool.utils: api/torch_omni_tool.utils.md
+      - torch_omni_tool.datasets: api/torch_omni_tool.datasets.md
+      - torch_omni_tool.normalizations: api/torch_omni_tool.normalizations.md
+      - torch_omni_tool.blocks: api/torch_omni_tool.blocks.md
+      - torch_omni_tool.activations: api/torch_omni_tool.activations.md
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - footnotes
+  - tables
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+
+plugins:
+  - search
+  - autorefs
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+            show_signature_annotations: true
+            separate_signature: true
+            docstring_style: google
+
+strict: true

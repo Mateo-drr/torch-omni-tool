@@ -6,10 +6,15 @@ A small PyTorch library of reusable network blocks plus a minimal training scaff
 Everything is plain `nn.Module` code with type hints and no framework dependencies, so
 blocks can be copied into any project or imported from here.
 
+## Documentation
+
+Full documentation is available at [GitHub Pages](https://Mateo-drr.github.io/torch-omni-tool/).
+
 ## Installation
 
 ```bash
 pip install -e ".[dev]"      # runtime + pytest / pylint / mypy / black / types-tqdm
+pip install -e ".[docs]"     # docs dependencies
 pip install -e ".[wandb]"    # adds the optional Weights & Biases logging dependency
 ```
 
@@ -20,25 +25,24 @@ so installing it is not needed to use the blocks.
 
 | Path | Contents |
 | --- | --- |
-| [`torch_omni_tool`](torch_omni_tool/blocks/README.md) | Network blocks: ConvNeXt V2, GRN, RepMoDE, RRDB, Squeeze-and-Excite, ViT positional embeddings |
-| [`torch_omni_tool`](torch_omni_tool/activations/README.md) | Activation layers: the periodic `Snake` activation |
-| [`torch_omni_tool`](torch_omni_tool/normalizations/README.md) | `LayerNorm` for `[b, c, h, w]` and `[b, h, w, c]` |
-| [`torch_omni_tool`](torch_omni_tool/datasets/README.md) | `Dataset` / `DataLoader` factory and 3D augmentations |
-| `torch_omni_tool` | `Config` dataclass plus a module-level `config` singleton |
-| `torch_omni_tool` | `SampleNet`, a placeholder autoencoder-style model |
-| `torch_omni_tool` | `run_model`, `train_loop`, `eval_loop` |
-| `torch_omni_tool` | Timing, metric formatting and epoch bookkeeping helpers |
-| `torch_omni_tool` | Entry point that wires the pieces together |
+| `mltools.blocks` | Network blocks: ConvNeXt V2, GRN, RepMoDE, RRDB, Squeeze-and-Excite, ViT positional embeddings |
+| `mltools.activations` | Activation layers: the periodic `Snake` activation |
+| `mltools.normalizations` | `LayerNorm` for `[b, c, h, w]` and `[b, h, w, c]` |
+| `mltools.datasets` | `Dataset` / `DataLoader` factory and 2D/3D augmentations |
+| `mltools.config` | `Config` dataclass plus a module-level `config` singleton |
+| `mltools.model` | `SampleNet`, a placeholder autoencoder-style model |
+| `mltools.loops` | `run_model`, `train_loop`, `eval_loop` |
+| `mltools.utils` | Timing, metric formatting and epoch bookkeeping helpers |
+| `mltools.training` | Entry point that wires the pieces together |
 | [`tests/`](tests/README.md) | Pytest suite (currently the GRN block) |
 
-Each folder has its own README with the details, tensor shapes and references. Every
-subpackage `__init__.py` re-exports its public API (with `__all__`), so blocks are imported
+Each subpackage `__init__.py` re-exports its public API (with `__all__`), so blocks are imported
 from their subpackage. The leaf-module paths still work too:
 
 ```python
-from torch_omni_tool.blocks import SEBlock, GRN
-from torch_omni_tool.normalizations import LayerNorm
-from torch_omni_tool.blocks.ConvNeXtV2.GRN import GRN  # leaf path, also valid
+from mltools.blocks import SEBlock, GRN
+from mltools.normalizations import LayerNorm
+from mltools.blocks.ConvNeXtV2.GRN import GRN  # leaf path, also valid
 ```
 
 The root `torch_omni_tool` package stays thin (`import torch_omni_tool` exposes the
@@ -52,14 +56,14 @@ Note the inconsistent casing in the paths (`RRDB_2D.py` vs `RRDB_3d.py`) and the
 
 | Block | Input | Import |
 | --- | --- | --- |
-| `ConvNeXtBlock` | `[B, C, H, W]` | `torch_omni_tool.blocks.ConvNeXtV2` |
-| `GRN` | `[B, C, H, W]` | `torch_omni_tool.blocks.ConvNeXtV2` |
-| `MoDE`, `MoDEConv2D` | `[B, C, H, W]` | `torch_omni_tool.blocks.RepMoDE` |
-| `MoDEConv1D`, `MoDEConv3D`, encoder/decoder blocks | `[B, C, L]` and `[B, C, D, H, W]` | `torch_omni_tool.blocks.RepMoDE` |
-| `RRDB`, `RRDB_3D` | `[B, C, H, W]`, `[B, C, D, H, W]` | `torch_omni_tool.blocks.RRDB` |
-| `SEBlock` | `[B, C, H, W]` | `torch_omni_tool.blocks.SEB` |
-| `PositionEmbeddingSine` | `[B, C, H, W]` | `torch_omni_tool.blocks.ViT` |
-| `Snake` | `[B, C, H, W]` | `torch_omni_tool.activations` |
+| `ConvNeXtBlock` | `[B, C, H, W]` | `mltools.blocks.ConvNeXtV2` |
+| `GRN` | `[B, C, H, W]` | `mltools.blocks.ConvNeXtV2` |
+| `MoDE`, `MoDEConv2D` | `[B, C, H, W]` | `mltools.blocks.RepMoDE` |
+| `MoDEConv1D`, `MoDEConv3D`, encoder/decoder blocks | `[B, C, L]` and `[B, C, D, H, W]` | `mltools.blocks.RepMoDE` |
+| `RRDB`, `RRDB_3D` | `[B, C, H, W]`, `[B, C, D, H, W]` | `mltools.blocks.RRDB` |
+| `SEBlock` | `[B, C, H, W]` | `mltools.blocks.SEB` |
+| `PositionEmbeddingSine` | `[B, C, H, W]` | `mltools.blocks.ViT` |
+| `Snake` | `[B, C, H, W]` | `mltools.activations` |
 
 The RepMoDE 1D/3D variants share class names in their leaf modules, so each subpackage
 re-exports them with dimensional aliases: `MoDEConv1D` / `MoDEConv3D`,
@@ -68,7 +72,7 @@ re-exports them with dimensional aliases: `MoDEConv1D` / `MoDEConv3D`,
 
 ```python
 import torch
-from torch_omni_tool.blocks import GRN
+from mltools.blocks import GRN
 
 y = GRN(64)(torch.randn(2, 64, 56, 56))  # [2, 64, 56, 56]
 ```
@@ -80,13 +84,13 @@ parsing, so edit the dataclass defaults or override attributes on the `config` s
 Print the defaults with:
 
 ```bash
-python -m torch_omni_tool.config
+python -m mltools.config
 ```
 
 Run the scaffold:
 
 ```bash
-python -m torch_omni_tool.training
+python -m mltools.training
 ```
 
 The flow is `training.py` → `make_dl` → `SampleNet` → `loops.train_loop` /
@@ -99,8 +103,8 @@ guard, so importing the module has no side effects.
 
 ```bash
 pytest             # tests/ (testpaths set in pyproject.toml)
-mypy               # strict mode over torch_omni_tool/
-pylint torch_omni_tool
+mypy mltools       # strict mode over mltools/
+pylint mltools
 ```
 
 CI (`.github/workflows/ci.yml`) runs Python 3.12 on Ubuntu: install, pylint, mypy and
@@ -115,7 +119,7 @@ remaining warnings are fixed.
   dim.
 - `PositionEmbeddingSine` needs an even `(channels + 1) // 2`; odd channel counts raise
   from `torch.stack`.
-- `augmentations_3d.random_local_rotation` expects a 4D `[b, 1, H, W]` chunk and a 2D
+- `augmentations_3d.random_local_rotation_3d` expects a 4D `[b, 1, H, W]` chunk and a 2D
   label; 5D volumes raise `RuntimeError`.
 - `training.py` builds a scheduler but passes `scheduler=None` to `train_loop`, so it never
   steps.
@@ -136,7 +140,8 @@ The blocks are re-implementations of published architectures. Original sources:
 | `SEBlock` | [Squeeze-and-Excitation Networks (CVPR 2018)](https://arxiv.org/abs/1709.01507) |
 | `PositionEmbeddingSine` | [End-to-End Object Detection with Transformers (DETR)](https://arxiv.org/abs/2005.12872) — [repo](https://github.com/facebookresearch/detr) |
 | `Snake` | [Neural Networks Fail to Learn Periodic Functions and How to Fix It](https://arxiv.org/abs/2006.08195) |
-| `random_local_rotation` | [Local Rotation Augmentation for 3D data](https://www.mdpi.com/2313-433X/9/2/46) |
+| `random_local_rotation_2d` | [Local Rotation Augmentation for 3D data](https://www.mdpi.com/2313-433X/9/2/46) |
+| `random_local_rotation_3d` | [Local Rotation Augmentation for 3D data](https://www.mdpi.com/2313-433X/9/2/46) |
 | `cutmix` | [CutMix: Regularized Strategy for Mixup on Image Classification](https://arxiv.org/abs/1905.04899) |
 
 ## License
