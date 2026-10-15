@@ -31,6 +31,24 @@ What is covered:
   gradients match an autograd reference, `beta` receives a constant gradient, and train and
   eval mode agree.
 
+## `test_augmentations.py`
+
+23 tests for the local rotation augmentations in
+[`../torch_omni_tool/datasets`](../torch_omni_tool/datasets/README.md). Inputs come from a
+fixed-seed `torch.Generator` and the `random` module is seeded per test, so runs are
+reproducible.
+
+What is covered:
+
+- **Optional label** — omitting the label (or passing `None` explicitly) returns a bare
+  `torch.Tensor`, while passing a label returns `(tensor, label)`; the input is rotated
+  identically in both cases because rotating a label consumes no randomness.
+- **In-place** — the augmented tensor is the same object that was passed in.
+- **Probability** — `p=0` is a no-op for both tensor and label, `p=1` changes every sample.
+- **Alignment** — a shared float plane in the input and label stays equal after rotation.
+- **Dtypes** — integer labels stay integer and in range, float labels keep their dtype.
+- **Validation** — a non-4D input, a non-3D label and an oversized radius raise `ValueError`.
+
 ## Adding tests
 
 Keep tests deterministic (seed the generator), assert against a reference implementation

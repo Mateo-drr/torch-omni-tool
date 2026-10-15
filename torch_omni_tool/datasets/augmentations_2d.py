@@ -7,6 +7,7 @@ Created on Mon Oct 12 2026
 
 import random
 from dataclasses import dataclass
+from typing import overload
 
 import torch
 import torchvision.transforms.functional as tf
@@ -71,28 +72,48 @@ def _rotate_region(
     data[box] = combined.to(data.dtype)
 
 
+@overload
+def random_local_rotation_2d(
+    in_tensor: torch.Tensor,
+    label: None = None,
+    radius: int = 16,
+    p: float = 0.5,
+) -> torch.Tensor: ...
+
+
+@overload
 def random_local_rotation_2d(
     in_tensor: torch.Tensor,
     label: torch.Tensor,
     radius: int = 16,
     p: float = 0.5,
-) -> tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]: ...
+
+
+def random_local_rotation_2d(
+    in_tensor: torch.Tensor,
+    label: torch.Tensor | None = None,
+    radius: int = 16,
+    p: float = 0.5,
+) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
     """
-    Rotate a random circular patch of a batch of 2D images together with its labels
+    Rotate a random circular patch of a batch of 2D images, optionally together with its labels
     Reference: https://www.mdpi.com/2313-433X/9/2/46
     Args
         in_tensor: Batch of images with shape [b, c, h, w]
-        label: Batch of label masks with shape [b, h, w]
+        label: Optional batch of label masks with shape [b, h, w]. When None only
+            the input tensor is augmented
         radius: Radius of the circular area that gets rotated
         p: Probability of applying the augmentation to each sample
     Returns
-        tuple[torch.Tensor, torch.Tensor]: Rotated image batch and label batch
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: Rotated image batch when
+            label is None, otherwise the rotated image batch and label batch
     """
     if in_tensor.ndim != 4:
         raise ValueError(
             f"in_tensor must be 4D with shape [b, c, h, w], got {in_tensor.ndim}D"
         )
-    if label.ndim != 3:
+    if label is not None and label.ndim != 3:
         raise ValueError(
             f"label must be 3D with shape [b, h, w], got {label.ndim}D"
         )
@@ -106,9 +127,9 @@ def random_local_rotation_2d(
         )
 
     label_interp = (
-        InterpolationMode.BILINEAR
-        if torch.is_floating_point(label)
-        else InterpolationMode.NEAREST
+        InterpolationMode.NEAREST
+        if label is None or not torch.is_floating_point(label)
+        else InterpolationMode.BILINEAR
     )
 
     for i in range(b):
@@ -131,7 +152,10 @@ def random_local_rotation_2d(
             inv_circle=1.0 - tf.rotate(circmask.unsqueeze(0), ang).squeeze(0),
         )
 
-        _rotate_region(label[i], patch, label_interp)
+        if label is not None:
+            _rotate_region(label[i], patch, label_interp)
         _rotate_region(in_tensor[i], patch, InterpolationMode.BILINEAR)
 
+    if label is None:
+        return in_tensor
     return in_tensor, label

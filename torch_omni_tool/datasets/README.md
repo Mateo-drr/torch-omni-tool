@@ -49,26 +49,27 @@ and `torchvision.transforms.functional` (`torchvision` is a core dependency).
 ### `random_local_rotation_2d`
 
 ```python
-random_local_rotation_2d(in_tensor, label, radius=16, p=0.5) -> tuple[torch.Tensor, torch.Tensor]
+random_local_rotation_2d(in_tensor, label=None, radius=16, p=0.5) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]
 ```
 
-Rotates a random circular patch together with its label, so the two stay aligned. Each
-sample of the batch is drawn independently: it has a chance `p` of being augmented, and its
-own random square position and angle in `[20, 340]`. Unlike the 3D version, the label is
-batched and the function is a no-op for samples that are not selected.
+Rotates a random circular patch together with its label, so the two stay aligned. Pass
+`label=None` (the default) to augment only the input tensor, in which case just the rotated
+tensor is returned. Each sample of the batch is drawn independently: it has a chance `p` of
+being augmented, and its own random square position and angle in `[20, 340]`. Unlike the 3D
+version, the label is batched and the function is a no-op for samples that are not selected.
 
 Args:
 
 - `in_tensor`: image batch `[b, c, h, w]`.
-- `label`: label batch `[b, h, w]`; integer labels are kept integer (rotated with nearest
-  interpolation), float labels keep their dtype.
+- `label`: optional label batch `[b, h, w]`; integer labels are kept integer (rotated with
+  nearest interpolation), float labels keep their dtype.
 - `radius`: radius of the circular patch that gets rotated.
 - `p`: per-sample probability of applying the augmentation.
 
 Caveats:
 
-- Raises `ValueError` if `in_tensor` is not 4D, `label` is not 3D, or `2 * radius` does not
-  fit in the spatial dimensions.
+- Raises `ValueError` if `in_tensor` is not 4D, `label` is provided but not 3D, or
+  `2 * radius` does not fit in the spatial dimensions.
 - Both tensors are modified in place.
 
 Reference: [Local Rotation Augmentation for 3D data](https://www.mdpi.com/2313-433X/9/2/46).
@@ -82,13 +83,14 @@ copy their inputs as noted below, and use Python's `random` plus `Pillow` (not d
 ### `random_local_rotation_3d`
 
 ```python
-random_local_rotation_3d(in_tensor, tlbl, radius=16, p=0.5) -> tuple[torch.Tensor, torch.Tensor]
+random_local_rotation_3d(in_tensor, tlbl=None, radius=16, p=0.5) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]
 ```
 
 Applies the augmentation with probability `p`. A random square of side `2 * radius` is
 picked, a circular mask is drawn inside it with `Pillow`, a random angle in `[20, 340]` is
 drawn, and the masked circular region is rotated — **image chunk and label mask together**,
-so labels stay aligned.
+so labels stay aligned. Pass `tlbl=None` (the default) to augment only the input chunk, in
+which case just the rotated chunk is returned.
 
 Caveats:
 
