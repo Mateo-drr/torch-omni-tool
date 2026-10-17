@@ -30,9 +30,14 @@ Requires Python >= 3.12.
 | [`tests/`](tests/README.md) | Pytest suite (currently the GRN block) |
 
 Each subpackage `__init__.py` re-exports its public API (with `__all__`), so blocks are imported
-from their subpackage. The leaf-module paths still work too:
+from their subpackage, or reached straight off the root package:
 
 ```python
+import torch_omni_tool as omni
+
+omni.blocks.SEBlock(64)
+omni.activations.Snake(64)
+
 from torch_omni_tool.blocks import SEBlock, GRN
 from torch_omni_tool.normalizations import LayerNorm
 from torch_omni_tool.blocks.ConvNeXtV2.GRN import GRN  # leaf path, also valid

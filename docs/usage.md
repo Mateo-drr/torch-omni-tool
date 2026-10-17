@@ -2,7 +2,19 @@
 
 ## Imports
 
-Prefer importing from the public subpackages:
+Every subpackage is reachable straight off the root package:
+
+```python
+import torch_omni_tool as omni
+
+omni.activations.Snake(64)      # [b, c, h, w]
+omni.blocks.GRN(64)             # [b, c, h, w]
+omni.normalizations.LayerNorm(64)
+omni.datasets.make_dl
+omni.utils.format_time
+```
+
+The same public names are available through direct imports:
 
 ```python
 from torch_omni_tool.blocks import SEBlock, GRN

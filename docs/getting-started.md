@@ -37,6 +37,9 @@ y = GRN(64)(x)
 print(y.shape)          # torch.Size([2, 64, 56, 56])
 ```
 
+The subpackages are also reachable off the root package (`import torch_omni_tool as omni`),
+so `omni.blocks.GRN(64)(x)` is equivalent.
+
 ## Development Tools
 
 ```bash
