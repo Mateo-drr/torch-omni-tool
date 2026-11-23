@@ -22,20 +22,24 @@ Import a block and run a forward pass:
 
 ```python
 import torch
-from torch_omni_tool.blocks import GRN
+from torch_omni_tool.blocks.ConvNeXtV2 import GRN2d
 
 x = torch.randn(2, 64, 56, 56)
-y = GRN(64)(x)
-print(y.shape)          # torch.Size([2, 64, 56, 56])
+y = GRN2d(64)(x)
+print(y.shape)  # torch.Size([2, 64, 56, 56])
 ```
 
-The subpackages are also reachable off the root package (`import torch_omni_tool as omni`),
-so `omni.blocks.GRN(64)(x)` is equivalent.
+The subpackages are also reachable off the root package, so with
+`import torch_omni_tool as omni` the same layer is `omni.blocks.ConvNeXtV2.GRN2d(64)`.
 
 ## Development Tools
 
 ```bash
-pytest                       # Run tests
-mypy torch_omni_tool         # Type check (strict mode)
-pylint torch_omni_tool       # Linting
+pytest                                  # run the tests
+mypy                                    # type check (strict, over torch_omni_tool/)
+black torch_omni_tool tests scripts     # format (line length 100)
+pylint torch_omni_tool                  # lint
+zensical serve                          # preview these docs
 ```
+
+CI runs black, a line length check, pylint (not blocking yet), mypy and pytest on every push.

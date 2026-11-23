@@ -2,32 +2,29 @@
 
 ## Imports
 
-Every subpackage is reachable straight off the root package:
+Import paths mirror the folder tree. Every name is exported by the folder that contains its
+file, and parent packages only expose their subfolders:
+
+```python
+from torch_omni_tool.activations import Snake
+from torch_omni_tool.normalizations import LayerNorm2d
+from torch_omni_tool.blocks.ConvNeXtV2 import ConvNeXtBlock, GRN2d
+from torch_omni_tool.blocks.RepMoDE import MoDEConv3d
+from torch_omni_tool.blocks.RRDB import RRDB2d
+from torch_omni_tool.datasets import make_dl
+from torch_omni_tool.datasets.CutMix import cutmix
+```
+
+The same paths work as attributes off the root package:
 
 ```python
 import torch_omni_tool as omni
 
-omni.activations.Snake(64)  # [b, c, h, w]
-omni.blocks.GRN(64)  # [b, c, h, w]
-omni.normalizations.LayerNorm2d(64)
-omni.datasets.make_dl
-omni.utils.format_time
+omni.activations.Snake(64)
+omni.blocks.SEB.SEBlock(64)
+omni.blocks.RRDB.RRDB3d(nf=32)
+omni.datasets.RandomLocalRotation.random_local_rotation_2d
 ```
-
-The same public names are available through direct imports:
-
-```python
-from torch_omni_tool.blocks import SEBlock, GRN
-from torch_omni_tool.normalizations import LayerNorm2d
-from torch_omni_tool.activations import Snake
-from torch_omni_tool.datasets import make_dl
-```
-
-Leaf-module paths also work if needed. Be consistent with the existing naming (some files use
-`2D` vs `3d` casing).
-
-> Note: The normalization module filename is `layer_norm_2d.py` (typo). The import path is
-> `torch_omni_tool.normalizations.layern_norm_2d`.
 
 ## Blocks
 
@@ -35,37 +32,44 @@ Every block is a standalone `nn.Module`, so it composes like any other layer:
 
 ```python
 import torch
-from torch_omni_tool.blocks import ConvNeXtBlock, SEBlock
+from torch_omni_tool.blocks.ConvNeXtV2 import ConvNeXtBlock
+from torch_omni_tool.blocks.SEB import SEBlock
 
 x = torch.randn(2, 64, 56, 56)
-x = SEBlock(64)(x)          # [2, 64, 56, 56]
-x = ConvNeXtBlock(64)(x)    # [2, 64, 56, 56]
+x = SEBlock(64)(x)  # [2, 64, 56, 56]
+x = ConvNeXtBlock(64)(x)  # ConvNeXt V2 block, [2, 64, 56, 56]
+x = ConvNeXtBlock(64, version=1)(x)  # original ConvNeXt block
 ```
 
-Many blocks come in dimension-specific variants (RepMoDE 1D/2D/3D, RRDB 2D/3D). Pick the
-variant that matches your spatial dimensions; see [Architecture](architecture.md) for the full
-list.
+Classes with dimension variants end in `1d`, `2d` or `3d`, like `nn.Conv2d`: `GRN1d` /
+`GRN2d` / `GRN3d`, `MoDEConv1d` / `MoDEConv2d` / `MoDEConv3d`, `RRDB2d` / `RRDB3d`. Pick the one
+that matches your spatial dimensions; see [Architecture](architecture.md) for the full list.
 
 ## Datasets and Augmentations
 
-`torch_omni_tool.datasets` exposes the dataset / dataloader factory and the augmentations:
+`torch_omni_tool.datasets` holds the dataset scaffold, and each augmentation has its own folder:
 
 ```python
-from torch_omni_tool.datasets import (
-    CustomDataset,
-    make_dl,
-    cutmix,
-    random_local_rotation_2d,
-    random_local_rotation_3d,
-)
+import torch
+from torch_omni_tool.datasets import CustomDataset, make_dl
+from torch_omni_tool.datasets.CutMix import cutmix
+from torch_omni_tool.datasets.RandomLocalRotation import random_local_rotation_2d
+
+images, labels = torch.rand(4, 3, 64, 64), torch.randint(0, 5, (4, 64, 64))
+images, labels = random_local_rotation_2d(images, labels, radius=16, p=0.5)
 ```
 
 ## Normalizations and Activations
 
 ```python
-from torch_omni_tool.normalizations import LayerNorm2d
+import torch
 from torch_omni_tool.activations import Snake
+from torch_omni_tool.normalizations import LayerNorm2d
+
+x = torch.randn(2, 64, 56, 56)
+x = LayerNorm2d(64, data_format="chan_first")(x)
+x = Snake(64)(x)
 ```
 
-`LayerNorm2d` accepts `[b, c, h, w]` and `[b, h, w, c]` inputs. `Snake` is a periodic activation
-applied channel-wise.
+`LayerNorm2d` accepts `[b, c, h, w]` (`chan_first`) and `[b, h, w, c]` (`chan_last`) inputs.
+`Snake` is a periodic activation with a learnable frequency per channel.

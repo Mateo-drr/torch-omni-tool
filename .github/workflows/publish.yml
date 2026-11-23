@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/mltools
+      url: https://pypi.org/p/torch-omni-tool
     permissions:
       id-token: write   # Required for Trusted Publishing
 

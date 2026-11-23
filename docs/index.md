@@ -27,11 +27,13 @@ Requires Python >= 3.12.
 
 ```python
 import torch
-from torch_omni_tool.blocks import GRN
+from torch_omni_tool.blocks.ConvNeXtV2 import ConvNeXtBlock
 
 x = torch.randn(2, 64, 56, 56)
-y = GRN(64)(x)          # [2, 64, 56, 56]
+y = ConvNeXtBlock(64)(x)  # ConvNeXt V2 block, [2, 64, 56, 56]
 ```
+
+Import paths mirror the folder tree: every name is imported from the folder that holds it.
 
 ## What is inside
 
@@ -41,7 +43,8 @@ y = GRN(64)(x)          # [2, 64, 56, 56]
 
     ---
 
-    ConvNeXt V2, GRN, RepMoDE 1D/2D/3D, RRDB 2D/3D, SEBlock and ViT positional embeddings.
+    ConvNeXt V1/V2, GRN 1D/2D/3D, RepMoDE 1D/2D/3D, RRDB 2D/3D, SEBlock and ViT positional
+    embeddings.
 
     [:octicons-arrow-right-24: Reference](api/torch_omni_tool.blocks.md)
 
@@ -65,7 +68,7 @@ y = GRN(64)(x)          # [2, 64, 56, 56]
 
     ---
 
-    Dataset / DataLoader factory and 2D/3D augmentations.
+    Dataset / DataLoader factory, random local rotation (2D/3D) and CutMix (3D).
 
     [:octicons-arrow-right-24: Reference](api/torch_omni_tool.datasets.md)
 
