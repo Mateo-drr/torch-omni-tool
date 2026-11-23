@@ -69,7 +69,7 @@ addopts = "-v"
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["torch_omni_tool"]
+files = ["torch_omni_tool", "tests"]
 
 [[tool.mypy.overrides]]
 module = ["torch.*"]

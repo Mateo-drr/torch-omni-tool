@@ -28,15 +28,21 @@ Normalization (GRN), the layer that ConvNeXt V2 adds to it.
 ## `ConvNeXtBlock`
 
 ```python
-ConvNeXtBlock(dim: int, layer_scale_init_value: float = 1e-6, version: Literal[1, 2] = 2)
+ConvNeXtBlock(
+    num_features: int,
+    layer_scale_init_value: float = 1e-6,
+    version: Literal[1, 2] = 2,
+    device=None,
+    dtype=None,
+)
 ```
 
-Input and output are `[B, dim, H, W]`:
+Input and output are `[B, num_features, H, W]` (`C` below):
 
-1. Depthwise 7x7 convolution (`groups=dim`), then permute to `[B, H, W, C]`.
+1. Depthwise 7x7 convolution (`groups=C`), then permute to `[B, H, W, C]`.
 2. `LayerNorm2d` (`chan_last`) from [`normalizations`](../../normalizations/README.md).
-3. Inverted bottleneck: `Linear(dim, 4 * dim)` → GELU → (V2 only: `GRN2d(4 * dim)`) →
-   `Linear(4 * dim, dim)`.
+3. Inverted bottleneck: `Linear(C, 4 * C)` → GELU → (V2 only: `GRN2d(4 * C)`) →
+   `Linear(4 * C, C)`.
 4. V1 only: LayerScale, a learnable per-channel `gamma` initialized to
    `layer_scale_init_value` (a value `<= 0` disables it). V2 drops LayerScale, so
    `layer_scale_init_value` is ignored.
@@ -47,17 +53,22 @@ import torch
 from torch_omni_tool.blocks.ConvNeXtV2 import ConvNeXtBlock
 
 x = torch.randn(1, 64, 56, 56)
-y_v2 = ConvNeXtBlock(dim=64)(x)  # ConvNeXt V2 block, [1, 64, 56, 56]
-y_v1 = ConvNeXtBlock(dim=64, version=1)(x)  # original ConvNeXt block
+y_v2 = ConvNeXtBlock(num_features=64)(x)  # ConvNeXt V2 block, [1, 64, 56, 56]
+y_v1 = ConvNeXtBlock(num_features=64, version=1)(x)  # original ConvNeXt block
 ```
 
 ## `GRN1d` / `GRN2d` / `GRN3d`
 
 ```python
-GRN2d(dim: int, data_format: Literal["chan_first", "chan_last"] = "chan_first")
+GRN2d(
+    num_features: int,
+    data_format: Literal["chan_first", "chan_last"] = "chan_first",
+    device=None,
+    dtype=None,
+)
 ```
 
-Global Response Normalization, `dim == C`. The math lives in one base class that works for any
+Global Response Normalization, `num_features == C`. The math lives in one base class that works for any
 number of spatial dims; the `1d` / `2d` / `3d` classes only fix the expected input rank, like
 `nn.BatchNorm1d/2d/3d`:
 

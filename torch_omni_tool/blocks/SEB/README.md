@@ -18,11 +18,11 @@ Squeeze-and-Excitation channel gating.
 ## `SEBlock`
 
 ```python
-SEBlock(channels: int, reduce_dim: int = 16)
+SEBlock(num_features: int, squeeze_channels: int = 16, device=None, dtype=None)
 ```
 
 1. **Squeeze:** `AdaptiveAvgPool2d(1)` reduces the input to `[B, C]`.
-2. **Excite:** `Linear(C, reduce_dim)` → ReLU → `Linear(reduce_dim, C)` → Sigmoid gives a
+2. **Excite:** `Linear(C, squeeze_channels)` → ReLU → `Linear(squeeze_channels, C)` → Sigmoid gives a
    per-channel gate in `[0, 1]`.
 3. **Scale:** the input is multiplied by the gate.
 
@@ -30,10 +30,12 @@ SEBlock(channels: int, reduce_dim: int = 16)
 import torch
 from torch_omni_tool.blocks.SEB import SEBlock
 
-y = SEBlock(channels=64, reduce_dim=16)(torch.randn(2, 64, 56, 56))  # [2, 64, 56, 56]
+y = SEBlock(num_features=64, squeeze_channels=16)(torch.randn(2, 64, 56, 56))  # [2, 64, 56, 56]
 ```
 
 ## Caveats
 
-- `reduce_dim` is the absolute bottleneck width, while the paper uses a reduction ratio `r`
-  (bottleneck `C // r`, `r = 16` by default). Pass `reduce_dim=channels // 16` to match it.
+- `squeeze_channels` is the absolute bottleneck width (same as torchvision's
+  `SqueezeExcitation`), while the paper uses a reduction ratio `r`
+  (bottleneck `C // r`, `r = 16` by default). Pass
+  `squeeze_channels=num_features // 16` to match it.

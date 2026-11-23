@@ -46,15 +46,15 @@ shared expert kernels** and mixes them per sample and per output channel:
 That covers the paper's two diversity axes: *shape* diversity (different receptive fields)
 and *kernel* diversity (plain convolutions vs. smoothed ones).
 
-The gate is a single `nn.Linear(num_tasks, num_experts * out_chan)` applied to the one-hot
-task encoding, reshaped to `[B, num_experts, out_chan]` and softmaxed over the expert axis.
+The gate is a single `nn.Linear(num_tasks, num_experts * out_channels)` applied to the one-hot
+task encoding, reshaped to `[B, num_experts, out_channels]` and softmaxed over the expert axis.
 `routing()` then builds one mixed kernel per sample and per output channel:
 
 ```
 w[b, o] = sum_e g[b, e, o] * expert_e[o]
 ```
 
-giving a tensor of shape `[B, out_chan, in_chan, K, K]`, which is applied with a grouped
+giving a tensor of shape `[B, out_channels, in_channels, K, K]`, which is applied with a grouped
 convolution (`groups=B`) so every sample uses its own kernel, in train and eval mode alike. Everything is differentiable: the
 gradient flows through the gate into the shared expert kernels.
 
@@ -81,13 +81,13 @@ caller to build it, e.g. `F.one_hot(task_id, num_classes=num_tasks).float()`.
 `global_task_id` (0 by default), which keeps the shared experts useful for samples whose
 task is unknown at inference time. `forward` returns the tensor *and* the task ids it
 actually used, and `get_task_weights(task_id=None)` returns the gate weights as numpy
-arrays of shape `[num_experts, out_chan]`, either for one task or for all of them.
+arrays of shape `[num_experts, out_channels]`, either for one task or for all of them.
 
 ```python
 import torch
 from torch_omni_tool.blocks.RepMoDE import MoDE
 
-block = MoDE(in_chans=3, out_chans=64, num_tasks=2)
+block = MoDE(in_channels=3, out_channels=64, num_tasks=2)
 y, task_id = block(torch.randn(2, 3, 64, 64), torch.tensor([0, 1]))
 weights = block.get_task_weights()  # {task_id: [5, 64]}
 ```
@@ -98,14 +98,14 @@ The 1d and 3d modules ship the autoencoder topology from the paper's code:
 
 Each block comes as `...1d` and `...3d`:
 
-- `MoDEEncoderBlock{1d,3d}(in_chan, out_chan)` — `MoDESubNet2Conv` to widen the channels, then a
+- `MoDEEncoderBlock{1d,3d}(in_channels, out_channels, num_tasks)` — `MoDESubNet2Conv` to widen the channels, then a
   strided `Conv{1,3}d(kernel=2, stride=2)` + norm + Mish to halve the resolution. Returns
-  the downsampled tensor and a skip tensor with `out_chan` channels.
-- `MoDESubNet2Conv{1d,3d}(n_in, n_out)` — two `MoDEConv`s (`kernel_size=5`, `padding="same"`) at
+  the downsampled tensor and a skip tensor with `out_channels` channels.
+- `MoDESubNet2Conv{1d,3d}(in_channels, out_channels, num_tasks)` — two `MoDEConv`s (`kernel_size=5`, `padding="same"`) at
   constant resolution.
-- `MoDEDecoderBlock{1d,3d}(in_chan, out_chan)` — `ConvTranspose{1,3}d(kernel=2, stride=2)` +
+- `MoDEDecoderBlock{1d,3d}(in_channels, out_channels, num_tasks)` — `ConvTranspose{1,3}d(kernel=2, stride=2)` +
   norm + Mish to double the resolution, concatenate the matching skip, then
-  `MoDESubNet2Conv`. `in_chan` is expected to be `2 * out_chan`.
+  `MoDESubNet2Conv`. `in_channels` is expected to be `2 * out_channels`.
 
 ```python
 import torch
@@ -117,9 +117,9 @@ from torch_omni_tool.blocks.RepMoDE import (
 
 t = torch.eye(3)[:2]  # one-hot task ids [B, num_tasks]
 x = torch.randn(2, 4, 16, 16, 16)
-y, skip = MoDEEncoderBlock3d(num_experts=5, num_tasks=3, in_chan=4, out_chan=8)(x, t)
-b = MoDESubNet2Conv3d(num_experts=5, num_tasks=3, n_in=8, n_out=16)(y, t)
-d = MoDEDecoderBlock3d(num_experts=5, num_tasks=3, in_chan=16, out_chan=8)(b, skip, t)
+y, skip = MoDEEncoderBlock3d(in_channels=4, out_channels=8, num_tasks=3)(x, t)
+b = MoDESubNet2Conv3d(in_channels=8, out_channels=16, num_tasks=3)(y, t)
+d = MoDEDecoderBlock3d(in_channels=16, out_channels=8, num_tasks=3)(b, skip, t)
 ```
 
 A full U-Net style stack (encoder → bottle → decoder → output conv) chains the blocks with
@@ -137,18 +137,18 @@ from torch_omni_tool.blocks.RepMoDE import (
 
 
 class MoDEUNet(nn.Module):
-    def __init__(self, in_chan: int, out_chan: int, num_tasks: int, base: int = 16) -> None:
+    def __init__(self, in_channels: int, out_channels: int, num_tasks: int, base: int = 16) -> None:
         super().__init__()
         self.num_tasks = num_tasks
-        chans = [in_chan, base, base * 2, base * 4, base * 8]
+        chans = [in_channels, base, base * 2, base * 4, base * 8]
         self.encoders = nn.ModuleList(
-            MoDEEncoderBlock3d(5, num_tasks, c_in, c_out) for c_in, c_out in zip(chans, chans[1:])
+            MoDEEncoderBlock3d(c_in, c_out, num_tasks) for c_in, c_out in zip(chans, chans[1:])
         )
-        self.bottle = MoDESubNet2Conv3d(5, num_tasks, base * 8, base * 16)
+        self.bottle = MoDESubNet2Conv3d(base * 8, base * 16, num_tasks)
         self.decoders = nn.ModuleList(
-            MoDEDecoderBlock3d(5, num_tasks, c * 2, c) for c in reversed(chans[1:])
+            MoDEDecoderBlock3d(c * 2, c, num_tasks) for c in reversed(chans[1:])
         )
-        self.conv_out = MoDEConv3d(5, num_tasks, base, out_chan, conv_type="final")
+        self.conv_out = MoDEConv3d(base, out_channels, num_tasks, conv_type="final")
 
     def forward(self, x, task_id):
         t = F.one_hot(task_id, num_classes=self.num_tasks).float()
@@ -166,7 +166,8 @@ The same stack works with the `1d` blocks on `[B, C, L]` input.
 
 ## Caveats
 
-- `num_experts` must be 5 (`routing()` indexes experts `0..4`) and `kernel_size` must be 5
+- `num_experts` must stay at its default of 5 (`routing()` indexes experts `0..4`) and
+  `kernel_size` must be 5
   (the 5x5 expert is never resized).
 - `stride` is ignored by `MoDEConv1d` / `MoDEConv3d`, and `MoDEConv2d` fails for `stride != 1`.
 - With `causal=True` `MoDEConv1d` takes and returns `[B, L, C]`, unlike the `[B, C, L]`

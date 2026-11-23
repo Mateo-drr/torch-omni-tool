@@ -19,22 +19,28 @@ class _GRN(nn.Module):
     _spatial_dims: int
 
     def __init__(
-        self, dim: int, data_format: Literal["chan_first", "chan_last"] = "chan_first"
+        self,
+        num_features: int,
+        data_format: Literal["chan_first", "chan_last"] = "chan_first",
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
     ) -> None:
         """
         Build a GRN layer
         Args:
-            dim (int): Number of channels, must match the channel dim of the input
+            num_features (int): Number of channels, must match the channel dim of the input
             data_format (Literal['chan_first', 'chan_last']): Layout of the input, chan_first for
                 [B, C, *spatial] or chan_last for [B, *spatial, C]
+            device (torch.device | str | None): Device of the parameters
+            dtype (torch.dtype | None): Data type of the parameters
         """
         super().__init__()
         if data_format not in ("chan_first", "chan_last"):
             raise NotImplementedError(f"unknown data_format {data_format!r}")
-        self.dim = dim
+        self.num_features = num_features
         self.data_format = data_format
-        self.gamma = nn.Parameter(torch.zeros(dim))
-        self.beta = nn.Parameter(torch.zeros(dim))
+        self.gamma = nn.Parameter(torch.zeros(num_features, device=device, dtype=dtype))
+        self.beta = nn.Parameter(torch.zeros(num_features, device=device, dtype=dtype))
 
     def _check_input(self, x: torch.Tensor) -> None:
         """
@@ -48,10 +54,10 @@ class _GRN(nn.Module):
                 f"{type(self).__name__} expects a {expected}D input, got {x.ndim}D {tuple(x.shape)}"
             )
         chan = 1 if self.data_format == "chan_first" else -1
-        if x.shape[chan] != self.dim:
+        if x.shape[chan] != self.num_features:
             raise ValueError(
-                f"{type(self).__name__} was built for {self.dim} channels, got {x.shape[chan]} "
-                f"in input {tuple(x.shape)} ({self.data_format})"
+                f"{type(self).__name__} was built for {self.num_features} channels, "
+                f"got {x.shape[chan]} in input {tuple(x.shape)} ({self.data_format})"
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -72,7 +78,7 @@ class _GRN(nn.Module):
             spatial = tuple(range(1, x.ndim - 1))
         # broadcast the [C] parameters along the channel axis
         shape = [1] * x.ndim
-        shape[chan] = self.dim
+        shape[chan] = self.num_features
         gamma, beta = self.gamma.view(shape), self.beta.view(shape)
 
         gx = torch.norm(x, p=2, dim=spatial, keepdim=True)  # norm over the spatial dims
@@ -105,8 +111,12 @@ class _GRN(nn.Module):
         for name in ("gamma", "beta"):
             key = prefix + name
             value = state_dict.get(key)
-            if isinstance(value, torch.Tensor) and value.ndim > 1 and value.numel() == self.dim:
-                state_dict[key] = value.reshape(self.dim)
+            if (
+                isinstance(value, torch.Tensor)
+                and value.ndim > 1
+                and value.numel() == self.num_features
+            ):
+                state_dict[key] = value.reshape(self.num_features)
         super()._load_from_state_dict(
             state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
         )

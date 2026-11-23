@@ -32,22 +32,42 @@ class MoDEEncoderBlock1d(torch.nn.Module):
     Encoder block that increases the channels and halves the sequence length
     """
 
-    def __init__(self, num_experts: int, num_tasks: int, in_chan: int, out_chan: int) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        num_tasks: int,
+        num_experts: int = 5,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
+    ) -> None:
         """
         Build a MoDE encoder block
         Args:
-            num_experts (int): Number of experts, routing expects 5 of them
+            in_channels (int): Number of input channels
+            out_channels (int): Number of output channels
             num_tasks (int): Number of tasks the gate can select from
-            in_chan (int): Number of input channels
-            out_chan (int): Number of output channels
+            num_experts (int): Number of experts, only 5 is supported
+            device (torch.device | str | None): Device of the parameters
+            dtype (torch.dtype | None): Data type of the parameters
         """
         super().__init__()
-        self.in_chan = in_chan
-        self.out_chan = out_chan
-        self.conv_more = MoDESubNet2Conv1d(num_experts, num_tasks, in_chan, out_chan)
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.conv_more = MoDESubNet2Conv1d(
+            in_channels, out_channels, num_tasks, num_experts, device=device, dtype=dtype
+        )
         self.conv_down = torch.nn.Sequential(
-            torch.nn.Conv1d(out_chan, out_chan, kernel_size=2, stride=2, bias=False),
-            nn.BatchNorm1d(out_chan, affine=True),
+            torch.nn.Conv1d(
+                out_channels,
+                out_channels,
+                kernel_size=2,
+                stride=2,
+                bias=False,
+                device=device,
+                dtype=dtype,
+            ),
+            nn.BatchNorm1d(out_channels, affine=True, device=device, dtype=dtype),
             torch.nn.Mish(inplace=True),
         )
 
@@ -55,10 +75,10 @@ class MoDEEncoderBlock1d(torch.nn.Module):
         """
         Convolve the input and downsample it by two
         Args:
-            x (torch.Tensor): Input tensor with shape [B, in_chan, L]
+            x (torch.Tensor): Input tensor with shape [B, in_channels, L]
             t (torch.Tensor): One hot task encoding with shape [B, num_tasks]
         Returns:
-            tuple[torch.Tensor, torch.Tensor]: Downsampled tensor and skip tensor with out_chan
+            tuple[torch.Tensor, torch.Tensor]: Downsampled tensor and skip tensor with out_channels
                 channels
         """
         x_skip = self.conv_more(x, t)
@@ -71,34 +91,54 @@ class MoDEDecoderBlock1d(torch.nn.Module):
     Decoder block that halves the channels and doubles the sequence length
     """
 
-    def __init__(self, num_experts: int, num_tasks: int, in_chan: int, out_chan: int) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        num_tasks: int,
+        num_experts: int = 5,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
+    ) -> None:
         """
         Build a MoDE decoder block
         Args:
-            num_experts (int): Number of experts, routing expects 5 of them
+            in_channels (int): Number of input channels, expected to be 2 * out_channels
+            out_channels (int): Number of output channels
             num_tasks (int): Number of tasks the gate can select from
-            in_chan (int): Number of input channels, expected to be 2 * out_chan
-            out_chan (int): Number of output channels
+            num_experts (int): Number of experts, only 5 is supported
+            device (torch.device | str | None): Device of the parameters
+            dtype (torch.dtype | None): Data type of the parameters
         """
         super().__init__()
-        self.in_chan = in_chan
-        self.out_chan = out_chan
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.convt = torch.nn.Sequential(
-            torch.nn.ConvTranspose1d(in_chan, out_chan, kernel_size=2, stride=2, bias=False),
-            nn.InstanceNorm1d(out_chan, affine=True),
+            torch.nn.ConvTranspose1d(
+                in_channels,
+                out_channels,
+                kernel_size=2,
+                stride=2,
+                bias=False,
+                device=device,
+                dtype=dtype,
+            ),
+            nn.InstanceNorm1d(out_channels, affine=True, device=device, dtype=dtype),
             torch.nn.Mish(inplace=True),
         )
-        self.conv_less = MoDESubNet2Conv1d(num_experts, num_tasks, in_chan, out_chan)
+        self.conv_less = MoDESubNet2Conv1d(
+            in_channels, out_channels, num_tasks, num_experts, device=device, dtype=dtype
+        )
 
     def forward(self, x: torch.Tensor, x_skip: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         """
         Upsample the input, concatenate the skip connection and convolve the result
         Args:
-            x (torch.Tensor): Input tensor with shape [B, in_chan, L]
+            x (torch.Tensor): Input tensor with shape [B, in_channels, L]
             x_skip (torch.Tensor): Skip tensor from the matching encoder block
             t (torch.Tensor): One hot task encoding with shape [B, num_tasks]
         Returns:
-            torch.Tensor: Output tensor with shape [B, out_chan, 2L]
+            torch.Tensor: Output tensor with shape [B, out_channels, 2L]
         """
         x = self.convt(x)
         x_cat: torch.Tensor = torch.cat((x_skip, x), 1)  # concatenate
@@ -111,27 +151,55 @@ class MoDESubNet2Conv1d(torch.nn.Module):
     Two stacked MoDE convolutions that keep the sequence length
     """
 
-    def __init__(self, num_experts: int, num_tasks: int, n_in: int, n_out: int) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        num_tasks: int,
+        num_experts: int = 5,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
+    ) -> None:
         """
         Build a subnet of two MoDE convolutions
         Args:
-            num_experts (int): Number of experts, routing expects 5 of them
+            in_channels (int): Number of input channels
+            out_channels (int): Number of output channels
             num_tasks (int): Number of tasks the gate can select from
-            n_in (int): Number of input channels
-            n_out (int): Number of output channels
+            num_experts (int): Number of experts, only 5 is supported
+            device (torch.device | str | None): Device of the parameters
+            dtype (torch.dtype | None): Data type of the parameters
         """
         super().__init__()
-        self.conv1 = MoDEConv1d(num_experts, num_tasks, n_in, n_out, kernel_size=5, padding="same")
-        self.conv2 = MoDEConv1d(num_experts, num_tasks, n_out, n_out, kernel_size=5, padding="same")
+        self.conv1 = MoDEConv1d(
+            in_channels,
+            out_channels,
+            num_tasks,
+            num_experts,
+            kernel_size=5,
+            padding="same",
+            device=device,
+            dtype=dtype,
+        )
+        self.conv2 = MoDEConv1d(
+            out_channels,
+            out_channels,
+            num_tasks,
+            num_experts,
+            kernel_size=5,
+            padding="same",
+            device=device,
+            dtype=dtype,
+        )
 
     def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         """
         Apply both MoDE convolutions in sequence
         Args:
-            x (torch.Tensor): Input tensor with shape [B, n_in, L]
+            x (torch.Tensor): Input tensor with shape [B, in_channels, L]
             t (torch.Tensor): One hot task encoding with shape [B, num_tasks]
         Returns:
-            torch.Tensor: Output tensor with shape [B, n_out, L]
+            torch.Tensor: Output tensor with shape [B, out_channels, L]
         """
         x = self.conv1(x, t)
         x = self.conv2(x, t)
@@ -145,88 +213,114 @@ class MoDEConv1d(torch.nn.Module):
 
     def __init__(
         self,
-        num_experts: int,
+        in_channels: int,
+        out_channels: int,
         num_tasks: int,
-        in_chan: int,
-        out_chan: int,
+        num_experts: int = 5,
         kernel_size: int = 5,
         stride: int = 1,
         padding: str = "same",
         conv_type: str = "normal",
         causal: bool = False,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
     ) -> None:
         """
         Build a mixture of diverse experts convolution
         Args:
-            num_experts (int): Number of experts, routing expects 5 of them
+            in_channels (int): Number of input channels
+            out_channels (int): Number of output channels
             num_tasks (int): Number of tasks the gate can select from
-            in_chan (int): Number of input channels
-            out_chan (int): Number of output channels
+            num_experts (int): Number of experts, only 5 is supported
             kernel_size (int): Size of the expert kernels
             stride (int): Stride of the convolution
             padding (str): Padding mode passed to F.conv1d
             conv_type (str): normal applies InstanceNorm and Mish, final skips them
             causal (bool): Whether the convolution only looks at past samples
+            device (torch.device | str | None): Device of the parameters
+            dtype (torch.dtype | None): Data type of the parameters
         """
         super().__init__()
 
         self.num_experts = num_experts
         self.num_tasks = num_tasks
-        self.in_chan = in_chan
-        self.out_chan = out_chan
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.conv_type = conv_type
         self.stride = stride
         self.padding = padding
         self.causal = causal
 
-        self.expert_conv5x5_conv = self.gen_conv_kernel(self.out_chan, self.in_chan, 5)
-        self.expert_conv3x3_conv = self.gen_conv_kernel(self.out_chan, self.in_chan, 3)
-        self.expert_conv1x1_conv = self.gen_conv_kernel(self.out_chan, self.in_chan, 1)
-        self.register_buffer("expert_avg3x3_pool", self.gen_avgpool_kernel(3))
-        self.expert_avg3x3_conv = self.gen_conv_kernel(self.out_chan, self.in_chan, 1)
-        self.register_buffer("expert_avg5x5_pool", self.gen_avgpool_kernel(5))
-        self.expert_avg5x5_conv = self.gen_conv_kernel(self.out_chan, self.in_chan, 1)
+        c_out, c_in = out_channels, in_channels
+        self.expert_conv5x5_conv = self.gen_conv_kernel(c_out, c_in, 5, device=device, dtype=dtype)
+        self.expert_conv3x3_conv = self.gen_conv_kernel(c_out, c_in, 3, device=device, dtype=dtype)
+        self.expert_conv1x1_conv = self.gen_conv_kernel(c_out, c_in, 1, device=device, dtype=dtype)
+        self.register_buffer(
+            "expert_avg3x3_pool", self.gen_avgpool_kernel(3, device=device, dtype=dtype)
+        )
+        self.expert_avg3x3_conv = self.gen_conv_kernel(c_out, c_in, 1, device=device, dtype=dtype)
+        self.register_buffer(
+            "expert_avg5x5_pool", self.gen_avgpool_kernel(5, device=device, dtype=dtype)
+        )
+        self.expert_avg5x5_conv = self.gen_conv_kernel(c_out, c_in, 1, device=device, dtype=dtype)
 
         assert self.conv_type in ["normal", "final"]
         self.subsequent_layer: nn.Module
         if self.conv_type == "normal":
             self.subsequent_layer = torch.nn.Sequential(
-                nn.InstanceNorm1d(out_chan, affine=True),
+                nn.InstanceNorm1d(out_channels, affine=True, device=device, dtype=dtype),
                 torch.nn.Mish(inplace=True),
             )
         else:
             self.subsequent_layer = torch.nn.Identity()
 
-        self.gate = torch.nn.Linear(num_tasks, num_experts * self.out_chan, bias=True)
+        self.gate = torch.nn.Linear(
+            num_tasks, num_experts * out_channels, bias=True, device=device, dtype=dtype
+        )
         self.softmax = torch.nn.Softmax(dim=1)
 
-    def gen_conv_kernel(self, chans_out: int, chans_in: int, k_size: int) -> nn.Parameter:
+    def gen_conv_kernel(
+        self,
+        out_channels: int,
+        in_channels: int,
+        kernel_size: int,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
+    ) -> nn.Parameter:
         """
         Create an initialized expert kernel
         Args:
-            chans_out (int): Number of output channels of the kernel
-            chans_in (int): Number of input channels of the kernel
-            k_size (int): Size of the kernel
+            out_channels (int): Number of output channels of the kernel
+            in_channels (int): Number of input channels of the kernel
+            kernel_size (int): Size of the kernel
+            device (torch.device | str | None): Device of the parameters
+            dtype (torch.dtype | None): Data type of the parameters
         Returns:
-            nn.Parameter: Kernel with shape [chans_out, chans_in, k_size]
+            nn.Parameter: Kernel with shape [out_channels, in_channels, kernel_size]
         """
-        # For 1D convolution, kernel shape is (Co, Ci, K)
-        weight = torch.nn.Parameter(torch.empty(chans_out, chans_in, k_size))
+        weight = torch.nn.Parameter(
+            torch.empty(out_channels, in_channels, kernel_size, device=device, dtype=dtype)
+        )
         torch.nn.init.kaiming_uniform_(weight, a=math.sqrt(5), mode="fan_out")
         return weight
 
-    def gen_avgpool_kernel(self, k_size: int) -> torch.Tensor:
+    def gen_avgpool_kernel(
+        self,
+        kernel_size: int,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
+    ) -> torch.Tensor:
         """
         Create an average pooling kernel
         Args:
-            k_size (int): Size of the kernel
+            kernel_size (int): Size of the kernel
+            device (torch.device | str | None): Device of the parameters
+            dtype (torch.dtype | None): Data type of the parameters
         Returns:
-            torch.Tensor: Kernel with shape [k_size]
+            torch.Tensor: Kernel with shape [kernel_size]
         """
-        # For 1D convolution, kernel shape is (K)
-        weight = torch.ones(k_size).mul(1.0 / k_size)
-        return weight
+        return torch.ones(kernel_size, device=device, dtype=dtype).mul(1.0 / kernel_size)
 
     def trans_kernel(self, kernel: torch.Tensor, target_size: int) -> torch.Tensor:
         """
@@ -249,10 +343,10 @@ class MoDEConv1d(torch.nn.Module):
         """
         Combine the expert kernels weighted by the gate output
         Args:
-            g (torch.Tensor): Gate output with shape [batch_size, num_experts, out_chan]
+            g (torch.Tensor): Gate output with shape [batch_size, num_experts, out_channels]
             batch_size (int): Number of samples in the batch
         Returns:
-            torch.Tensor: Mixed kernels with shape [batch_size, out_chan, in_chan, K]
+            torch.Tensor: Mixed kernels with shape [batch_size, out_channels, in_channels, K]
         """
         expert_conv5x5 = self.expert_conv5x5_conv
         expert_conv3x3 = self.trans_kernel(self.expert_conv3x3_conv, self.kernel_size)
@@ -283,15 +377,15 @@ class MoDEConv1d(torch.nn.Module):
         """
         Convolve the input with the expert kernels mixed by the task gate
         Args:
-            x (torch.Tensor): Input tensor with shape [B, in_chan, L]
+            x (torch.Tensor): Input tensor with shape [B, in_channels, L]
             t (torch.Tensor): One hot task encoding with shape [B, num_tasks]
         Returns:
-            torch.Tensor: Output tensor with shape [B, out_chan, L]
+            torch.Tensor: Output tensor with shape [B, out_channels, L]
         """
         batch_size = x.shape[0]  # batch size
 
         g = self.gate(t)  # [b, x out channels * experts]
-        g = g.view((batch_size, self.num_experts, self.out_chan))  # [b,experts,x out channels]
+        g = g.view((batch_size, self.num_experts, self.out_channels))  # [b,experts,x out channels]
         g = self.softmax(g)
 
         w = self.routing(g, batch_size)  # [b,x out chann, 1, 5] mix expert kernels
@@ -312,7 +406,7 @@ class MoDEConv1d(torch.nn.Module):
 
             # Reshape and concatenate all weights
             w_batched = w.view(
-                batch_size * self.out_chan, self.in_chan, self.kernel_size
+                batch_size * self.out_channels, self.in_channels, self.kernel_size
             )  # Shape: [48*768, 768, 5]
 
             # Use grouped convolution
@@ -326,15 +420,17 @@ class MoDEConv1d(torch.nn.Module):
             )
 
             # Reshape result back to original batch format
-            y = y_batched.view(batch_size, self.out_chan, -1)  # Shape: [48, 768, 383]
+            y = y_batched.view(batch_size, self.out_channels, -1)  # Shape: [48, 768, 383]
 
         else:
             # grouped conv so every sample uses its own mixed kernel
-            x_grouped = x.reshape(1, batch_size * self.in_chan, x.shape[2])
-            w_grouped = w.reshape(batch_size * self.out_chan, self.in_chan, self.kernel_size)
+            x_grouped = x.reshape(1, batch_size * self.in_channels, x.shape[2])
+            w_grouped = w.reshape(
+                batch_size * self.out_channels, self.in_channels, self.kernel_size
+            )
             y = F.conv1d(
                 x_grouped, w_grouped, bias=None, stride=1, padding="same", groups=batch_size
-            ).view(batch_size, self.out_chan, x.shape[2])
+            ).view(batch_size, self.out_channels, x.shape[2])
 
         y = self.subsequent_layer(y)
 

@@ -13,19 +13,27 @@ class SEBlock(nn.Module):
     Squeeze and Excite block
     """
 
-    def __init__(self, channels: int, reduce_dim: int = 16) -> None:
+    def __init__(
+        self,
+        num_features: int,
+        squeeze_channels: int = 16,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
+    ) -> None:
         """
         Build a squeeze and excite block
         Args:
-            channels (int): Number of input channels
-            reduce_dim (int): Number of channels of the bottleneck inside the excitation
+            num_features (int): Number of channels, the output keeps the same count
+            squeeze_channels (int): Number of channels of the bottleneck inside the excitation
+            device (torch.device | str | None): Device of the parameters
+            dtype (torch.dtype | None): Data type of the parameters
         """
         super().__init__()
         self.squeeze = nn.AdaptiveAvgPool2d(1)
         self.excite = nn.Sequential(
-            nn.Linear(channels, reduce_dim, bias=False),
+            nn.Linear(num_features, squeeze_channels, bias=False, device=device, dtype=dtype),
             nn.ReLU(inplace=True),
-            nn.Linear(reduce_dim, channels, bias=False),
+            nn.Linear(squeeze_channels, num_features, bias=False, device=device, dtype=dtype),
             nn.Sigmoid(),
         )
 

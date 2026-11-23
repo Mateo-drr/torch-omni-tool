@@ -74,7 +74,7 @@ y = GRN2d(64)(torch.randn(2, 64, 56, 56))  # [2, 64, 56, 56]
 
 ```bash
 pytest                                  # tests/
-mypy                                    # strict, over torch_omni_tool/
+mypy                                    # strict, over torch_omni_tool/ and tests/
 black torch_omni_tool tests scripts     # formatting, line length 100
 pylint torch_omni_tool
 zensical serve                          # docs preview
@@ -83,10 +83,8 @@ zensical serve                          # docs preview
 CI (`.github/workflows/ci.yml`) runs black, a line length check, pylint (not blocking yet),
 mypy and pytest on Python 3.12.
 
-Code style: black with a 100 column limit, and Google style docstrings that start on the line
-after the opening quotes and have no blank lines (`Args:` / `Returns:` items indented by 4 spaces,
-`name (type): description`). The docs build parses them through
-[`scripts/griffe_compact.py`](scripts/griffe_compact.py).
+Code style, naming, constructor arguments and how to add a block are described in
+[`CONTRIBUTING.md`](CONTRIBUTING.md); `tests/test_conventions.py` enforces most of it.
 
 ## Known issues
 

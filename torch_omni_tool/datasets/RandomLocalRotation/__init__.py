@@ -1,3 +1,7 @@
+"""
+Random local rotation augmentation, in 2d and 3d
+"""
+
 from torch_omni_tool.datasets.RandomLocalRotation.RandomLocalRotation_2d import (
     random_local_rotation_2d,
 )

@@ -13,21 +13,40 @@ class ResidualDenseBlock_5C_3d(nn.Module):
     3d residual dense block with 5 convolutions and dense connections
     """
 
-    def __init__(self, nf: int = 64, gc: int = 32, bias: bool = True) -> None:
+    def __init__(
+        self,
+        num_features: int,
+        growth_channels: int = 32,
+        bias: bool = True,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
+    ) -> None:
         """
         Build a 3d residual dense block
         Args:
-            nf (int): Number of feature channels
-            gc (int): Growth channels, i.e. intermediate channels
+            num_features (int): Number of channels, the output keeps the same count
+            growth_channels (int): Number of channels added by each of the first four convolutions
             bias (bool): Whether the convolutions use a bias term
+            device (torch.device | str | None): Device of the parameters
+            dtype (torch.dtype | None): Data type of the parameters
         """
-        super(ResidualDenseBlock_5C_3d, self).__init__()
-        # gc: growth channel, i.e. intermediate channels
-        self.conv1 = nn.Conv3d(nf, gc, 3, 1, 1, bias=bias)
-        self.conv2 = nn.Conv3d(nf + gc, gc, 3, 1, 1, bias=bias)
-        self.conv3 = nn.Conv3d(nf + 2 * gc, gc, 3, 1, 1, bias=bias)
-        self.conv4 = nn.Conv3d(nf + 3 * gc, gc, 3, 1, 1, bias=bias)
-        self.conv5 = nn.Conv3d(nf + 4 * gc, nf, 3, 1, 1, bias=bias)
+        super().__init__()
+        c, g = num_features, growth_channels
+        self.conv1 = nn.Conv3d(
+            c, g, kernel_size=3, stride=1, padding=1, bias=bias, device=device, dtype=dtype
+        )
+        self.conv2 = nn.Conv3d(
+            c + g, g, kernel_size=3, stride=1, padding=1, bias=bias, device=device, dtype=dtype
+        )
+        self.conv3 = nn.Conv3d(
+            c + 2 * g, g, kernel_size=3, stride=1, padding=1, bias=bias, device=device, dtype=dtype
+        )
+        self.conv4 = nn.Conv3d(
+            c + 3 * g, g, kernel_size=3, stride=1, padding=1, bias=bias, device=device, dtype=dtype
+        )
+        self.conv5 = nn.Conv3d(
+            c + 4 * g, c, kernel_size=3, stride=1, padding=1, bias=bias, device=device, dtype=dtype
+        )
         self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -51,17 +70,31 @@ class RRDB3d(nn.Module):
     3d Residual in Residual Dense Block
     """
 
-    def __init__(self, nf: int, gc: int = 32) -> None:
+    def __init__(
+        self,
+        num_features: int,
+        growth_channels: int = 32,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
+    ) -> None:
         """
         Build a 3d residual in residual dense block
         Args:
-            nf (int): Number of feature channels
-            gc (int): Growth channels of every 3d residual dense block
+            num_features (int): Number of channels, the output keeps the same count
+            growth_channels (int): Growth channels of every residual dense block
+            device (torch.device | str | None): Device of the parameters
+            dtype (torch.dtype | None): Data type of the parameters
         """
-        super(RRDB3d, self).__init__()
-        self.RDB1 = ResidualDenseBlock_5C_3d(nf, gc)
-        self.RDB2 = ResidualDenseBlock_5C_3d(nf, gc)
-        self.RDB3 = ResidualDenseBlock_5C_3d(nf, gc)
+        super().__init__()
+        self.RDB1 = ResidualDenseBlock_5C_3d(
+            num_features, growth_channels, device=device, dtype=dtype
+        )
+        self.RDB2 = ResidualDenseBlock_5C_3d(
+            num_features, growth_channels, device=device, dtype=dtype
+        )
+        self.RDB3 = ResidualDenseBlock_5C_3d(
+            num_features, growth_channels, device=device, dtype=dtype
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

@@ -12,7 +12,7 @@ from typing import Literal
 
 class LayerNorm2d(nn.Module):
     """
-    LayerNorm2d 2d
+    LayerNorm over the channel dim of [b, c, h, w] or [b, h, w, c] inputs
     Source: convnext
     """
 
@@ -21,9 +21,11 @@ class LayerNorm2d(nn.Module):
         normalized_shape: int,
         eps: float = 1e-6,
         data_format: Literal["chan_first", "chan_last"] = "chan_first",
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
     ) -> None:
         """
-        Build a 2d LayerNorm2d
+        Build a 2d LayerNorm
         Supports two data formats: chan_first (default) or chan_last. The ordering of the
         dimensions in the inputs. chan_last corresponds to inputs with shape [b, h, w, c], while
         chan_first corresponds to inputs with shape [b, c, h, w].
@@ -32,10 +34,12 @@ class LayerNorm2d(nn.Module):
             eps (float): Value added to the variance for numerical stability
             data_format (Literal['chan_first', 'chan_last']): Layout of the input, either chan_first
                 or chan_last
+            device (torch.device | str | None): Device of the parameters
+            dtype (torch.dtype | None): Data type of the parameters
         """
         super().__init__()
-        self.weight = nn.Parameter(torch.ones(normalized_shape))
-        self.bias = nn.Parameter(torch.zeros(normalized_shape))
+        self.weight = nn.Parameter(torch.ones(normalized_shape, device=device, dtype=dtype))
+        self.bias = nn.Parameter(torch.zeros(normalized_shape, device=device, dtype=dtype))
         self.eps = eps
         self.data_format = data_format
         if self.data_format not in ["chan_last", "chan_first"]:

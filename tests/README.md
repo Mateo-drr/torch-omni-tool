@@ -6,61 +6,35 @@ bare `pytest` from the repository root runs everything here.
 ```bash
 pytest
 pytest tests/test_grn.py -k identity
+pytest tests/test_repmode.py -k "3d and eval"
 ```
 
-`conftest.py` is currently empty; fixtures live next to the tests that use them.
+`conftest.py` is currently empty; fixtures and helpers live next to the tests that use them. How
+tests are written (plain functions, `parametrize` for variants, seeded inputs, reference
+implementations, regression and known-issue tests) is described in
+[`CONTRIBUTING.md`](../CONTRIBUTING.md#tests), and `test_conventions.py` enforces the parts that
+can be checked.
 
-## `test_grn.py`
+## Files
 
-Tests for [`GRN1d` / `GRN2d` / `GRN3d`](../torch_omni_tool/blocks/ConvNeXtV2/README.md).
-Inputs are generated with a fixed-seed `torch.Generator` so runs are reproducible, and the
-block is cross-checked against a straightforward re-implementation of the GRN formula
-(`_reference_grn`) rather than against hardcoded numbers.
+| File | Covers |
+| --- | --- |
+| `test_conventions.py` | The rules of `CONTRIBUTING.md` over the whole package: exports mirror the folder tree, constructor arguments follow torch, lowercase `1d` / `2d` / `3d` suffixes, docstring layout with `Args:` / `Returns:` matching the signature, a `## Source` section linking the paper in every folder README, and the test style of this folder. A second set of tests feeds each check broken examples. |
+| `test_grn.py` | `GRN1d` / `GRN2d` / `GRN3d` against a reference for any number of spatial dims: formula, `gamma` / `beta` behaviour, identity at init, gradients, dtypes, non-contiguous inputs, input validation, `chan_last` vs `chan_first`, `state_dict` round trip and loading pre-shaped checkpoints |
+| `test_convnext.py` | `ConvNeXtBlock`: V2 by default with a channel-last `GRN2d` and no LayerScale, V1 with LayerScale and no GRN, shapes, invalid versions, `dtype` |
+| `test_layers.py` | `Snake` (formula, monotonic, learnable frequency), `LayerNorm2d` (matches `F.layer_norm`, both layouts agree), `SEBlock` (matches a reference, bottleneck width, per-channel gate), `PositionEmbeddingSine` (matches a DETR style reference for several channel counts) |
+| `test_rrdb.py` | Dense blocks and RRDB in 2d / 3d: shapes, identity when the last convolutions are zero, the `0.2` residual scaling, growth channels, `bias` |
+| `test_repmode.py` | `MoDEConv1d/2d/3d`: every sample uses its own task kernel in train and eval (regression), batched equals single samples, shapes, task dependence, gate softmax, non-contiguous inputs (regression); causal layout and causality; encoder / subnet / decoder shapes; the `MoDE` wrapper's global task swap and task weights; `dtype` |
+| `test_augmentations.py` | Random local rotation, 2d and 3d through the same parametrized tests: optional label, label not changing the input's rotation, in place, `p=0` / `p=1`, label alignment, dtypes; 2d integer labels, per-sample draws and input validation; 3d using one patch for the whole chunk |
+| `test_cutmix.py` | One `mask_size` cube swapped in both directions between adjacent samples with the matching label window, in place, batch content preserved |
+| `test_training.py` | Dataset and `make_dl`, `run_model`, `train_loop` (loss decreases, AMP clips unscaled gradients, scheduler steps; regressions), `eval_loop`, `utils`, and the training script stepping its scheduler (regression) |
 
-What is covered:
+## Known issues
 
-- **Shapes** — output matches the input for `[1, 3, 1, 1]`, `[2, 8, 5, 7]` and
-  `[4, 16, 32, 32]`; non-contiguous inputs; float32/float64 dtype preservation; a channel
-  count that does not match `dim` and an input of the wrong rank both raise `ValueError`.
-- **Formula** — equality with the reference implementation, norms computed over `H, W`
-  before being normalized across `C`, `gamma` scaling and `beta` shifting per channel,
-  `beta` acting as a pure additive shift, positive homogeneity when `beta == 0`.
-- **Initialization and parameters** — `gamma`/`beta` shapes, both zero-initialized, block is
-  the identity at init, `state_dict` round-trip, all-zero input does not produce `NaN`.
-- **Variants and layout** — `GRN1d` and `GRN3d` match an N-d reference, `chan_last` matches
-  `chan_first` for every variant, the channel check follows `data_format`, and checkpoints
-  with pre-shaped `[1, C, 1, 1]` / `[1, 1, 1, C]` parameters load.
-- **Autograd** — gradients reach the input and both parameters, input and parameter
-  gradients match an autograd reference, `beta` receives a constant gradient, and train and
-  eval mode agree.
+Bugs that are not fixed yet are `xfail(strict=True)` tests, so fixing one makes its test fail as
+an unexpected pass until the marker is removed:
 
-## `test_convnext.py`
-
-Tests for [`ConvNeXtBlock`](../torch_omni_tool/blocks/ConvNeXtV2/README.md): V2 is the default
-and uses a channel-last `GRN2d` without LayerScale, V1 keeps LayerScale (disabled when
-`layer_scale_init_value <= 0`) without GRN, both preserve the input shape, and an invalid
-`version` raises `ValueError`.
-
-## `test_augmentations.py`
-
-23 tests for the local rotation augmentations in
-[`../torch_omni_tool/datasets`](../torch_omni_tool/datasets/README.md). Inputs come from a
-fixed-seed `torch.Generator` and the `random` module is seeded per test, so runs are
-reproducible.
-
-What is covered:
-
-- **Optional label** — omitting the label (or passing `None` explicitly) returns a bare
-  `torch.Tensor`, while passing a label returns `(tensor, label)`; the input is rotated
-  identically in both cases because rotating a label consumes no randomness.
-- **In-place** — the augmented tensor is the same object that was passed in.
-- **Probability** — `p=0` is a no-op for both tensor and label, `p=1` changes every sample.
-- **Alignment** — a shared float plane in the input and label stays equal after rotation.
-- **Dtypes** — integer labels stay integer and in range, float labels keep their dtype.
-- **Validation** — a non-4D input, a non-3D label and an oversized radius raise `ValueError`.
-
-## Adding tests
-
-Keep tests deterministic (seed the generator), assert against a reference implementation
-where one is cheap to write, and prefer `torch.testing.assert_close` over manual
-`tolerances`. Type hints are required — mypy runs in strict mode and CI runs both tools.
+- `PositionEmbeddingSine` with an odd `(C + 1) // 2` (`test_layers.py`)
+- `MoDEConv2d` with `kernel_size != 5`, and the causal `MoDEConv1d` normalization seeing future
+  steps (`test_repmode.py`)
+- `eval_loop` ignoring `eval_name`, and the reversed loss arguments (`test_training.py`)

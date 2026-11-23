@@ -17,7 +17,7 @@ Activation layers.
 ## `Snake`
 
 ```python
-Snake(channels: int, eps: float = 1e-6)
+Snake(num_features: int, eps: float = 1e-6, device=None, dtype=None)
 ```
 
 `snake_a(x) = x + (1 / (a + eps)) * sin(a * x) ** 2`, applied elementwise. `a` is a learnable

@@ -22,7 +22,7 @@ import torch_omni_tool as omni
 
 omni.activations.Snake(64)
 omni.blocks.SEB.SEBlock(64)
-omni.blocks.RRDB.RRDB3d(nf=32)
+omni.blocks.RRDB.RRDB3d(num_features=32)
 omni.datasets.RandomLocalRotation.random_local_rotation_2d
 ```
 

@@ -25,39 +25,50 @@ class ConvNeXtBlock(nn.Module):
     """
 
     def __init__(
-        self, dim: int, layer_scale_init_value: float = 1e-6, version: Literal[1, 2] = 2
+        self,
+        num_features: int,
+        layer_scale_init_value: float = 1e-6,
+        version: Literal[1, 2] = 2,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
     ) -> None:
         """
         Build a ConvNeXt block
         Args:
-            dim (int): Number of input channels
+            num_features (int): Number of channels, the output keeps the same count
             layer_scale_init_value (float): Initial value of LayerScale, disabled when not
                 positive, only used by version 1
             version (Literal[1, 2]): 2 for the ConvNeXt V2 block (GRN, no LayerScale), 1 for the
                 original ConvNeXt block (LayerScale, no GRN)
+            device (torch.device | str | None): Device of the parameters
+            dtype (torch.dtype | None): Data type of the parameters
         """
         super().__init__()
         if version not in (1, 2):
             raise ValueError(f"version must be 1 or 2, got {version!r}")
         self.version = version
+        c = num_features
         # depthwise conv
-        self.dw_conv = nn.Conv2d(dim, dim, kernel_size=7, padding=3, groups=dim)
-        self.norm = LayerNorm2d(dim, eps=1e-6, data_format="chan_last")
+        self.dw_conv = nn.Conv2d(
+            c, c, kernel_size=7, padding=3, groups=c, device=device, dtype=dtype
+        )
+        self.norm = LayerNorm2d(c, eps=1e-6, data_format="chan_last", device=device, dtype=dtype)
         # pointwise/1x1 convs, implemented with linear layers
-        self.pw_conv1 = nn.Linear(dim, 4 * dim)
+        self.pw_conv1 = nn.Linear(c, 4 * c, device=device, dtype=dtype)
         self.act = nn.GELU()
         # V2 normalizes the expanded features, the input is channel last at this point
-        self.grn: GRN2d | None = GRN2d(4 * dim, data_format="chan_last") if version == 2 else None
-        self.pw_conv2 = nn.Linear(4 * dim, dim)
+        self.grn: GRN2d | None = (
+            GRN2d(4 * c, data_format="chan_last", device=device, dtype=dtype)
+            if version == 2
+            else None
+        )
+        self.pw_conv2 = nn.Linear(4 * c, c, device=device, dtype=dtype)
         # V2 drops LayerScale
         self.gamma: nn.Parameter | None = (
-            nn.Parameter(layer_scale_init_value * torch.ones(dim), requires_grad=True)
+            nn.Parameter(torch.full((c,), layer_scale_init_value, device=device, dtype=dtype))
             if version == 1 and layer_scale_init_value > 0
             else None
         )
-        # TODO
-        # self.drop_path = DropPath(
-        #     drop_path) if drop_path > 0. else nn.Identity()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

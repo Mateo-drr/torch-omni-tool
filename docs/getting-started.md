@@ -36,7 +36,7 @@ The subpackages are also reachable off the root package, so with
 
 ```bash
 pytest                                  # run the tests
-mypy                                    # type check (strict, over torch_omni_tool/)
+mypy                                    # type check (strict, over torch_omni_tool/ and tests/)
 black torch_omni_tool tests scripts     # format (line length 100)
 pylint torch_omni_tool                  # lint
 zensical serve                          # preview these docs

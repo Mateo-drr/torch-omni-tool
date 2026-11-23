@@ -23,6 +23,8 @@ LayerNorm2d(
     normalized_shape: int,
     eps: float = 1e-6,
     data_format: Literal["chan_first", "chan_last"] = "chan_first",
+    device=None,
+    dtype=None,
 )
 ```
 
