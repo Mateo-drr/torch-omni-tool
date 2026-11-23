@@ -5,7 +5,7 @@
 All public code lives in the subpackages, each of which re-exports its API via `__all__`:
 
 - `torch_omni_tool.blocks` – network blocks (ConvNeXt V2, GRN, RepMoDE 1D/2D/3D, RRDB 2D/3D, SEB, ViT)
-- `torch_omni_tool.normalizations` – `LayerNorm` implementations (note filename: `layern_norm_2d.py`)
+- `torch_omni_tool.normalizations` – `LayerNorm2d` implementations (note filename: `layer_norm_2d.py`)
 - `torch_omni_tool.activations` – `Snake`
 - `torch_omni_tool.datasets` – dataset/dataloader factory and 2D/3D augmentations
 - `torch_omni_tool.utils` – timing and metric formatting helpers
@@ -24,10 +24,10 @@ Many blocks come in dimension-specific variants. Pick the variant matching your 
 ## Imports & Conventions
 
 - Subpackages re-export public APIs via `__all__`; the root package stays thin.
-- `ConvNeXtV2.ConvNeXtV2` imports `LayerNorm` as `from torch_omni_tool.normalizations.layern_norm_2d import LayerNorm`.
+- `ConvNeXtV2.ConvNeXtV2` imports `LayerNorm2d` as `from torch_omni_tool.normalizations.layern_norm_2d import LayerNorm`.
 - Type hints are present; `mypy` runs in strict mode.
 - Casing inconsistencies exist (`RRDB_2D.py` vs `RRDB_3d.py`), and the normalization filename
-  has a typo (`layern_norm_2d.py`). Keep import paths consistent if renaming.
+  has a typo (`layer_norm_2d.py`). Keep import paths consistent if renaming.
 
 ## Known Gotchas
 

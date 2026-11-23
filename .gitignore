@@ -4,5 +4,5 @@
 AGENTS.md
 **/__pycache__/
 
-# MkDocs build output (deployed by .github/workflows/docs.yml)
+# Docs build output (MkDocs / Zensical), deployed by .github/workflows/docs.yml
 site/

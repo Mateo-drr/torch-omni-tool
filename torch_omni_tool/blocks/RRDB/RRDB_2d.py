@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Jul 26 17:41:06 2024
-
 @author: Mateo-drr
 """
 
@@ -9,7 +8,7 @@ import torch
 import torch.nn as nn
 
 
-class ResidualDenseBlock_5C(nn.Module):
+class ResidualDenseBlock_5C_2d(nn.Module):
     """
     Residual dense block with 5 convolutions and dense connections
     """
@@ -17,13 +16,12 @@ class ResidualDenseBlock_5C(nn.Module):
     def __init__(self, nf: int = 64, gc: int = 32, bias: bool = True) -> None:
         """
         Build a residual dense block
-        Args
-            self: Residual dense block instance
-            nf: Number of feature channels
-            gc: Growth channels, i.e. intermediate channels
-            bias: Whether the convolutions use a bias term
+        Args:
+            nf (int): Number of feature channels
+            gc (int): Growth channels, i.e. intermediate channels
+            bias (bool): Whether the convolutions use a bias term
         """
-        super(ResidualDenseBlock_5C, self).__init__()
+        super(ResidualDenseBlock_5C_2d, self).__init__()
         # gc: growth channel, i.e. intermediate channels
         self.conv1 = nn.Conv2d(nf, gc, 3, 1, 1, bias=bias)
         self.conv2 = nn.Conv2d(nf + gc, gc, 3, 1, 1, bias=bias)
@@ -35,10 +33,9 @@ class ResidualDenseBlock_5C(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Convolve the input with every convolution and merge the outputs densely
-        Args
-            self: Residual dense block instance
-            x: Input tensor with shape [B, C, H, W]
-        Returns
+        Args:
+            x (torch.Tensor): Input tensor with shape [B, C, H, W]
+        Returns:
             torch.Tensor: Scaled output tensor with the same shape as the input
         """
         x1 = self.lrelu(self.conv1(x))
@@ -49,29 +46,29 @@ class ResidualDenseBlock_5C(nn.Module):
         return x5 * 0.2 + x
 
 
-class RRDB(nn.Module):
-    """Residual in Residual Dense Block"""
+class RRDB2d(nn.Module):
+    """
+    Residual in Residual Dense Block
+    """
 
     def __init__(self, nf: int, gc: int = 32) -> None:
         """
         Build a residual in residual dense block
-        Args
-            self: RRDB instance
-            nf: Number of feature channels
-            gc: Growth channels of every residual dense block
+        Args:
+            nf (int): Number of feature channels
+            gc (int): Growth channels of every residual dense block
         """
-        super(RRDB, self).__init__()
-        self.RDB1 = ResidualDenseBlock_5C(nf, gc)
-        self.RDB2 = ResidualDenseBlock_5C(nf, gc)
-        self.RDB3 = ResidualDenseBlock_5C(nf, gc)
+        super(RRDB2d, self).__init__()
+        self.RDB1 = ResidualDenseBlock_5C_2d(nf, gc)
+        self.RDB2 = ResidualDenseBlock_5C_2d(nf, gc)
+        self.RDB3 = ResidualDenseBlock_5C_2d(nf, gc)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Pass the input through the three stacked residual dense blocks
-        Args
-            self: RRDB instance
-            x: Input tensor with shape [B, C, H, W]
-        Returns
+        Args:
+            x (torch.Tensor): Input tensor with shape [B, C, H, W]
+        Returns:
             torch.Tensor: Scaled output tensor with the same shape as the input
         """
         out: torch.Tensor = self.RDB1(x)

@@ -1,40 +1,39 @@
 # Activations
 
-Activation layers. Currently a single periodic activation.
+Activation layers.
+
+| Class | File | Input |
+| --- | --- | --- |
+| `Snake` | [`snake.py`](snake.py) | `[B, C, H, W]` |
+
+## Source
+
+- **Paper:** Liu Ziyin, Tilman Hartwig, Masahito Ueda, *Neural Networks Fail to Learn Periodic
+  Functions and How to Fix It*, NeurIPS 2020 — [arXiv:2006.08195](https://arxiv.org/abs/2006.08195)
+- **Reference code:** written from the paper's formula. NVIDIA BigVGAN's
+  [`activations.py`](https://github.com/NVIDIA/BigVGAN/blob/main/activations.py) is a widely
+  used PyTorch implementation of the same activation (and of the `SnakeBeta` variant).
 
 ## `Snake`
-
-`snake.py`
 
 ```python
 Snake(channels: int, eps: float = 1e-6)
 ```
 
-The sine-based periodic activation `snake_a(x) = x + (1 / (a + eps)) * sin(a * x) ** 2`,
-applied elementwise on `[B, C, H, W]`. `a` is a learnable per-channel parameter of shape
-`[1, C, 1, 1]`, initialized to `1 / 2`, so the frequency of the periodic term is learned
-per channel; `eps` keeps the division finite when `a` approaches zero.
-
-Unlike ReLU, the function is periodic *and* monotonic, which is what makes it useful for
-regressing periodic signals and for implicit-neural-representation style models.
+`snake_a(x) = x + (1 / (a + eps)) * sin(a * x) ** 2`, applied elementwise. `a` is a learnable
+per-channel frequency of shape `[1, C, 1, 1]` initialized to `0.5`; `eps` keeps the division
+finite when `a` approaches zero. The function is periodic and monotonic, which helps models
+regress and extrapolate periodic signals.
 
 ```python
 import torch
-from torch_omni_tool.activations.snake import Snake
+from torch_omni_tool.activations import Snake
 
 y = Snake(64)(torch.randn(2, 64, 56, 56))  # [2, 64, 56, 56]
 ```
 
-Caveats:
+## Caveats
 
-- The parameter shape `[1, C, 1, 1]` means the activation only broadcasts over 4D inputs.
-  For `[B, C, L]` audio-style tensors use `SnakeBeta` or reshape the parameter yourself.
-- This is the plain `Snake`, not `SnakeBeta` (which adds a learnable magnitude `beta`).
-
-## References
-
-- Ziyin Liu, Tilman Hartwig, Masahito Ueda, *Neural Networks Fail to Learn Periodic
-  Functions and How to Fix It* — [arXiv:2006.08195](https://arxiv.org/abs/2006.08195)
-- Widely used implementation — NVIDIA BigVGAN,
-  [github.com/NVIDIA/BigVGAN](https://github.com/NVIDIA/BigVGAN/blob/main/activations.py)
-- PyTorch port used as a reference — [github.com/EdwardDixon/snake](https://github.com/EdwardDixon/snake)
+- The `[1, C, 1, 1]` parameter only broadcasts over 4D inputs; `[B, C, L]` inputs need a
+  reshaped parameter.
+- Only the plain `Snake` is implemented, not `SnakeBeta` (separate learnable magnitude).

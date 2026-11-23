@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sun Oct 04 22:38:08 2026
-
 @author: Mateo-drr
 """
 
@@ -17,10 +16,9 @@ class Snake(nn.Module):
     def __init__(self, channels: int, eps: float = 1e-6) -> None:
         """
         Build a snake activation
-        Args
-            self: Snake instance
-            channels: Number of channels of the input, shapes the learnable frequency
-            eps: Value added to the frequency to avoid dividing by zero
+        Args:
+            channels (int): Number of channels of the input, shapes the learnable frequency
+            eps (float): Value added to the frequency to avoid dividing by zero
         """
         super().__init__()
         self.channels = channels
@@ -30,10 +28,9 @@ class Snake(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Add a learnable periodic term to the input
-        Args
-            self: Snake instance
-            x: Input tensor with shape [B, C, H, W]
-        Returns
+        Args:
+            x (torch.Tensor): Input tensor with shape [B, C, H, W]
+        Returns:
             torch.Tensor: Output tensor with shape [B, C, H, W]
         """
         x = x + (1 / (self.a + self.eps)) * torch.sin(self.a * x) ** 2

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Jul 26 16:04:55 2024
-
 @author: Mateo-drr
 """
 
@@ -22,9 +21,8 @@ class CustomDataset(Dataset[dict[str, Any]]):
     def __init__(self, config: Config) -> None:
         """
         Build the dataset
-        Args
-            self: Dataset instance
-            config: Config holding the batch and dataloader options
+        Args:
+            config (Config): Config holding the batch and dataloader options
         """
         super().__init__()
         self.config = config
@@ -33,9 +31,7 @@ class CustomDataset(Dataset[dict[str, Any]]):
     def __len__(self) -> int:
         """
         Count the samples of the dataset
-        Args
-            self: Dataset instance
-        Returns
+        Returns:
             int: Number of samples
         """
         return len(self.data)
@@ -43,10 +39,9 @@ class CustomDataset(Dataset[dict[str, Any]]):
     def __getitem__(self, idx: int) -> dict[str, Any]:
         """
         Get a single sample
-        Args
-            self: Dataset instance
-            idx: Index of the sample
-        Returns
+        Args:
+            idx (int): Index of the sample
+        Returns:
             dict[str, Any]: Sample with shape [8, 16] under the data key
         """
         data = self.data[idx]
@@ -56,15 +51,14 @@ class CustomDataset(Dataset[dict[str, Any]]):
         }
 
 
-def make_dl(
-    config: Config, split: Literal["train", "valid", "test"]
-) -> DataLoader[dict[str, Any]]:
+def make_dl(config: Config, split: Literal["train", "valid", "test"]) -> DataLoader[dict[str, Any]]:
     """
     Build the dataloader of a split
-    Args
-        config: Config holding the batch, worker and prefetch options
-        split: Split to build the dataloader for, either train, valid or test
-    Returns
+    Args:
+        config (Config): Config holding the batch, worker and prefetch options
+        split (Literal['train', 'valid', 'test']): Split to build the dataloader for, either train,
+            valid or test
+    Returns:
         DataLoader[dict[str, Any]]: Dataloader over the dataset of the split
     """
     dataset = CustomDataset(config)
@@ -77,9 +71,7 @@ def make_dl(
                 pin_memory=True,
                 shuffle=True,
                 num_workers=config.num_workers,
-                prefetch_factor=(
-                    config.prefetch_factor if config.num_workers > 0 else None
-                ),
+                prefetch_factor=(config.prefetch_factor if config.num_workers > 0 else None),
             )
         case "valid":
             dataloader = DataLoader(

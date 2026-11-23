@@ -12,7 +12,7 @@ pytest tests/test_grn.py -k identity
 
 ## `test_grn.py`
 
-22 tests for [`../torch_omni_tool`](../torch_omni_tool/blocks/ConvNeXtV2/README.md).
+Tests for [`GRN1d` / `GRN2d` / `GRN3d`](../torch_omni_tool/blocks/ConvNeXtV2/README.md).
 Inputs are generated with a fixed-seed `torch.Generator` so runs are reproducible, and the
 block is cross-checked against a straightforward re-implementation of the GRN formula
 (`_reference_grn`) rather than against hardcoded numbers.
@@ -21,15 +21,25 @@ What is covered:
 
 - **Shapes** — output matches the input for `[1, 3, 1, 1]`, `[2, 8, 5, 7]` and
   `[4, 16, 32, 32]`; non-contiguous inputs; float32/float64 dtype preservation; a channel
-  count that does not match `dim` and a non-4D input both fail.
+  count that does not match `dim` and an input of the wrong rank both raise `ValueError`.
 - **Formula** — equality with the reference implementation, norms computed over `H, W`
   before being normalized across `C`, `gamma` scaling and `beta` shifting per channel,
   `beta` acting as a pure additive shift, positive homogeneity when `beta == 0`.
 - **Initialization and parameters** — `gamma`/`beta` shapes, both zero-initialized, block is
   the identity at init, `state_dict` round-trip, all-zero input does not produce `NaN`.
+- **Variants and layout** — `GRN1d` and `GRN3d` match an N-d reference, `chan_last` matches
+  `chan_first` for every variant, the channel check follows `data_format`, and checkpoints
+  with pre-shaped `[1, C, 1, 1]` / `[1, 1, 1, C]` parameters load.
 - **Autograd** — gradients reach the input and both parameters, input and parameter
   gradients match an autograd reference, `beta` receives a constant gradient, and train and
   eval mode agree.
+
+## `test_convnext.py`
+
+Tests for [`ConvNeXtBlock`](../torch_omni_tool/blocks/ConvNeXtV2/README.md): V2 is the default
+and uses a channel-last `GRN2d` without LayerScale, V1 keeps LayerScale (disabled when
+`layer_scale_init_value <= 0`) without GRN, both preserve the input shape, and an invalid
+`version` raises `ValueError`.
 
 ## `test_augmentations.py`
 

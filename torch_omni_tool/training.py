@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Jul 26 17:09:10 2024
-
 @author: Mateo-drr
 """
 
@@ -33,6 +32,7 @@ if __name__ == "__main__":
     # Define a loss function and optimizer
     criterion = config.criterion()
     optimizer = config.optimizer(model.parameters(), lr=config.lr)
+    scheduler: torch.optim.lr_scheduler.LRScheduler | None = None
     if config.scheduler is not None:
         scheduler = config.scheduler(optimizer, T_max=config.num_epochs)
     scaler = torch.amp.GradScaler(device=config.device)
@@ -62,7 +62,7 @@ if __name__ == "__main__":
             wb_metrics,
             config,
             epoch,
-            scheduler=None,
+            scheduler=scheduler,
         )
 
         loops.eval_loop(

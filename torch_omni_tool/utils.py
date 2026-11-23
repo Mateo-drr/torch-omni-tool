@@ -2,7 +2,6 @@
 """
 Utility functions
 Created on Sun Oct 04 21:15:35 2026
-
 @author: Mateo-drr
 """
 
@@ -21,8 +20,8 @@ from torch_omni_tool.config import Config
 def print_list(items: list[Any]) -> None:
     """
     Print every item of a list with its index
-    Args
-        items: Items to print
+    Args:
+        items (list[Any]): Items to print
     """
     for i, item in enumerate(items):
         print(i, item)
@@ -33,12 +32,12 @@ def eta(
 ) -> None:
     """
     Calculate and print estimated time of arrival (ETA) for training epochs
-    Args
-        start_time: Start time of the training process as a timestamp
-        epoch_start: Start time of the current epoch as a timestamp
-        epoch_end: End time of the current epoch as a timestamp
-        epoch: Current epoch number, 0 based
-        num_epochs: Total number of epochs
+    Args:
+        start_time (float): Start time of the training process as a timestamp
+        epoch_start (float): Start time of the current epoch as a timestamp
+        epoch_end (float): End time of the current epoch as a timestamp
+        epoch (int): Current epoch number, 0 based
+        num_epochs (int): Total number of epochs
     """
     elapsed_total = epoch_end - start_time
     epoch_time = epoch_end - epoch_start
@@ -61,9 +60,9 @@ def eta(
 def format_time(seconds: float) -> str:
     """
     Format seconds to h:m or only m
-    Args
-        seconds: Time in seconds to format
-    Returns
+    Args:
+        seconds (float): Time in seconds to format
+    Returns:
         str: Formated time
     """
     hours = int(seconds // 3600)
@@ -74,8 +73,8 @@ def format_time(seconds: float) -> str:
 def count_params(model: torch.nn.Module) -> None:
     """
     Print trainable and total number of parameters in model
-    Args
-        model: Model to inspect
+    Args:
+        model (torch.nn.Module): Model to inspect
     """
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -88,10 +87,11 @@ def format_metrics(
 ) -> defaultdict[str, list[Any]]:
     """
     Append every metric of a batch to the results of the epoch
-    Args
-        outputs: Metrics of a single batch, tensors are converted to floats
-        results: Metrics of the epoch, each metric holds a list of values per batch
-    Returns
+    Args:
+        outputs (dict[str, Any]): Metrics of a single batch, tensors are converted to floats
+        results (defaultdict[str, list[Any]]): Metrics of the epoch, each metric holds a list of
+            values per batch
+    Returns:
         defaultdict[str, list[Any]]: Updated metrics of the epoch
     """
     for key, value in outputs.items():
@@ -104,11 +104,12 @@ def epoch_results(
 ) -> dict[str, dict[str, Any]]:
     """
     Calculate the average of all the metrics of an epoch
-    Args
-        results: Dictionary of metrics, each metric has to be a list of values per batch
-        formated: Dictionary to place the formated epoch results
-        split: Either train or valid
-    Returns
+    Args:
+        results (dict[str, list[Any]]): Dictionary of metrics, each metric has to be a list of
+            values per batch
+        formated (dict[str, dict[str, Any]]): Dictionary to place the formated epoch results
+        split (str): Either train or valid
+    Returns:
         dict[str, dict[str, Any]]: Updated dictionary of epoch results
     """
     for key, values in results.items():
@@ -128,15 +129,15 @@ def finish_epoch(
 ) -> dict[str, Any]:
     """
     Log the epoch results, print the ETA and keep the best model so far
-    Args
-        epoch: Current epoch, 0 based
-        wb_metrics: Metrics of the epoch, keyed by split and metric name
-        timings: Timestamps of the start of the run and of the current epoch
-        current_best: Metrics and model of the best epoch so far
-        current_lr: Learning rate of the current epoch
-        model: Model of the current epoch
-        config: Config holding the total number of epochs and the wandb option
-    Returns
+    Args:
+        epoch (int): Current epoch, 0 based
+        wb_metrics (dict[str, dict[str, Any]]): Metrics of the epoch, keyed by split and metric name
+        timings (dict[str, float]): Timestamps of the start of the run and of the current epoch
+        current_best (dict[str, Any]): Metrics and model of the best epoch so far
+        current_lr (float): Learning rate of the current epoch
+        model (torch.nn.Module): Model of the current epoch
+        config (Config): Config holding the total number of epochs and the wandb option
+    Returns:
         dict[str, Any]: Metrics and model of the best epoch so far
     """
     print(

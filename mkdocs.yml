@@ -107,5 +107,11 @@ plugins:
             show_signature_annotations: true
             separate_signature: true
             docstring_style: google
+            # "Returns:" items are "type: description", not "name: description"
+            docstring_options:
+              returns_named_value: false
+            # lets docstrings skip the blank line before Args:/Returns:
+            extensions:
+              - scripts/griffe_compact.py:CompactSections
 
 strict: true

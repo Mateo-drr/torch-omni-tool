@@ -27,7 +27,14 @@ jobs:
           python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
           python -m pip install -e ".[dev]"
 
-      # known-failing: 7.6/10, remove continue-on-error once clean
+      - name: Black
+        run: black --check torch_omni_tool tests scripts
+
+      # enforced on its own until the full pylint run below is clean
+      - name: Line length
+        run: pylint torch_omni_tool tests scripts --disable=all --enable=line-too-long
+
+      # known-failing, remove continue-on-error once clean
       - name: Pylint
         continue-on-error: true
         run: pylint torch_omni_tool

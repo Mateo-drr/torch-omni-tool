@@ -16,14 +16,6 @@ pip install -e ".[docs]"
 
 Requires Python >= 3.12.
 
-## Activate Environment
-
-If using the repo's virtual environment:
-
-```bash
-. .venv/bin/activate
-```
-
 ## Quick Verification
 
 Import a block and run a forward pass:

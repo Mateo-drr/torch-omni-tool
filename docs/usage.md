@@ -7,9 +7,9 @@ Every subpackage is reachable straight off the root package:
 ```python
 import torch_omni_tool as omni
 
-omni.activations.Snake(64)      # [b, c, h, w]
-omni.blocks.GRN(64)             # [b, c, h, w]
-omni.normalizations.LayerNorm(64)
+omni.activations.Snake(64)  # [b, c, h, w]
+omni.blocks.GRN(64)  # [b, c, h, w]
+omni.normalizations.LayerNorm2d(64)
 omni.datasets.make_dl
 omni.utils.format_time
 ```
@@ -18,7 +18,7 @@ The same public names are available through direct imports:
 
 ```python
 from torch_omni_tool.blocks import SEBlock, GRN
-from torch_omni_tool.normalizations import LayerNorm
+from torch_omni_tool.normalizations import LayerNorm2d
 from torch_omni_tool.activations import Snake
 from torch_omni_tool.datasets import make_dl
 ```
@@ -26,7 +26,7 @@ from torch_omni_tool.datasets import make_dl
 Leaf-module paths also work if needed. Be consistent with the existing naming (some files use
 `2D` vs `3d` casing).
 
-> Note: The normalization module filename is `layern_norm_2d.py` (typo). The import path is
+> Note: The normalization module filename is `layer_norm_2d.py` (typo). The import path is
 > `torch_omni_tool.normalizations.layern_norm_2d`.
 
 ## Blocks
@@ -63,9 +63,9 @@ from torch_omni_tool.datasets import (
 ## Normalizations and Activations
 
 ```python
-from torch_omni_tool.normalizations import LayerNorm
+from torch_omni_tool.normalizations import LayerNorm2d
 from torch_omni_tool.activations import Snake
 ```
 
-`LayerNorm` accepts `[b, c, h, w]` and `[b, h, w, c]` inputs. `Snake` is a periodic activation
+`LayerNorm2d` accepts `[b, c, h, w]` and `[b, h, w, c]` inputs. `Snake` is a periodic activation
 applied channel-wise.

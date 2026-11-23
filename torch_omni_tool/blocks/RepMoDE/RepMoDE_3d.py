@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sun Oct 04 21:15:35 2026
-
 @author: Mateo-drr
 """
 
@@ -13,62 +12,12 @@ from torch.nn import functional as F
 import math
 
 
-# Sample usage
-#
-# # encoder
-# self.encoder_block1 = MoDEEncoderBlock(self.num_experts, self.num_tasks, self.in_channels, self.in_channels * self.mult_chan)
-# self.encoder_block2 = MoDEEncoderBlock(self.num_experts, self.num_tasks, self.in_channels * self.mult_chan, self.in_channels * self.mult_chan * 2)
-# self.encoder_block3 = MoDEEncoderBlock(self.num_experts, self.num_tasks, self.in_channels * self.mult_chan * 2, self.in_channels * self.mult_chan * 4)
-# self.encoder_block4 = MoDEEncoderBlock(self.num_experts, self.num_tasks, self.in_channels * self.mult_chan * 4, self.in_channels * self.mult_chan * 8)
-#
-# # bottle
-# self.bottle_block = MoDESubNet2Conv(self.num_experts, self.num_tasks, self.in_channels * self.mult_chan * 8, self.in_channels * self.mult_chan * 16)
-#
-# # decoder
-# self.decoder_block4 = MoDEDecoderBlock(self.num_experts, self.num_tasks, self.in_channels * self.mult_chan * 16, self.in_channels * self.mult_chan * 8)
-# self.decoder_block3 = MoDEDecoderBlock(self.num_experts, self.num_tasks, self.in_channels * self.mult_chan * 8, self.in_channels * self.mult_chan * 4)
-# self.decoder_block2 = MoDEDecoderBlock(self.num_experts, self.num_tasks, self.in_channels * self.mult_chan * 4, self.in_channels * self.mult_chan * 2)
-# self.decoder_block1 = MoDEDecoderBlock(self.num_experts, self.num_tasks, self.in_channels * self.mult_chan * 2, self.in_channels * self.mult_chan)
-#
-# # conv out
-# self.conv_out = MoDEConv(self.num_experts, self.num_tasks, self.mult_chan, self.out_channels, kernel_size=5, padding='same', conv_type='final')
-#
-# def forward(self, x, t):
-#     # task embedding
-#     task_emb = self.one_hot_task_embedding(t)
-#
-#     # encoding
-#     #x = self.dropout1(x)
-#     print(x.shape)
-#     x, x_skip1 = self.encoder_block1(x, task_emb)
-#     x, x_skip2 = self.encoder_block2(x, task_emb)
-#     #x = self.dropout(x)
-#     x, x_skip3 = self.encoder_block3(x, task_emb)
-#     x, x_skip4 = self.encoder_block4(x, task_emb)
-#     #print(x.shape,x_skip4.shape)
-#     #x = self.dropout(x)
-#     # bottle
-#     x = self.bottle_block(x, task_emb)
-#
-#     # decoding
-#     x = self.dropout_latent(x)
-#     x = self.decoder_block4(x, x_skip4, task_emb)
-#     x = self.decoder_block3(x, x_skip3, task_emb)
-#     #x = self.dropout(x)
-#     x = self.decoder_block2(x, x_skip2, task_emb)
-#     x = self.decoder_block1(x, x_skip1, task_emb)
-#     outputs = self.conv_out(x, task_emb)
-
-
-
-
 def one_hot_task_embedding(self: Any, task_id: torch.Tensor) -> torch.Tensor:
     """
     Turn task ids into one hot encodings
-    Args
-        self: Module that owns the num_tasks and device attributes
-        task_id: Task id of every sample with shape [B]
-    Returns
+    Args:
+        task_id (torch.Tensor): Task id of every sample with shape [B]
+    Returns:
         torch.Tensor: One hot task encoding with shape [B, num_tasks]
     """
     n_samples = task_id.shape[0]
@@ -78,7 +27,7 @@ def one_hot_task_embedding(self: Any, task_id: torch.Tensor) -> torch.Tensor:
     return task_embedding.to(self.device)
 
 
-class MoDEEncoderBlock(torch.nn.Module):
+class MoDEEncoderBlock3d(torch.nn.Module):
     """
     Encoder block that increases the channels and halves the spatial dims
     """
@@ -86,41 +35,38 @@ class MoDEEncoderBlock(torch.nn.Module):
     def __init__(self, num_experts: int, num_tasks: int, in_chan: int, out_chan: int) -> None:
         """
         Build a MoDE encoder block
-        Args
-            self: Encoder block instance
-            num_experts: Number of experts, routing expects 5 of them
-            num_tasks: Number of tasks the gate can select from
-            in_chan: Number of input channels
-            out_chan: Number of output channels
+        Args:
+            num_experts (int): Number of experts, routing expects 5 of them
+            num_tasks (int): Number of tasks the gate can select from
+            in_chan (int): Number of input channels
+            out_chan (int): Number of output channels
         """
         super().__init__()
         self.in_chan = in_chan
         self.out_chan = out_chan
-        self.conv_more = MoDESubNet2Conv(num_experts, num_tasks, in_chan, out_chan)
+        self.conv_more = MoDESubNet2Conv3d(num_experts, num_tasks, in_chan, out_chan)
         self.conv_down = torch.nn.Sequential(
             torch.nn.Conv3d(out_chan, out_chan, kernel_size=2, stride=2, bias=False),
             nn.BatchNorm3d(out_chan, affine=True),  # torch.nn.BatchNorm3d(out_chan),
             torch.nn.Mish(inplace=True),
         )
 
-    def forward(
-        self, x: torch.Tensor, t: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor, t: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Convolve the input and downsample it by two
-        Args
-            self: Encoder block instance
-            x: Input tensor with shape [B, in_chan, D, H, W]
-            t: One hot task encoding with shape [B, num_tasks]
-        Returns
-            tuple[torch.Tensor, torch.Tensor]: Downsampled tensor and skip tensor with out_chan channels
+        Args:
+            x (torch.Tensor): Input tensor with shape [B, in_chan, D, H, W]
+            t (torch.Tensor): One hot task encoding with shape [B, num_tasks]
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: Downsampled tensor and skip tensor with out_chan
+                channels
         """
         x_skip = self.conv_more(x, t)
         x = self.conv_down(x_skip)
         return x, x_skip
 
 
-class MoDEDecoderBlock(torch.nn.Module):
+class MoDEDecoderBlock3d(torch.nn.Module):
     """
     Decoder block that halves the channels and doubles the spatial dims
     """
@@ -128,36 +74,30 @@ class MoDEDecoderBlock(torch.nn.Module):
     def __init__(self, num_experts: int, num_tasks: int, in_chan: int, out_chan: int) -> None:
         """
         Build a MoDE decoder block
-        Args
-            self: Decoder block instance
-            num_experts: Number of experts, routing expects 5 of them
-            num_tasks: Number of tasks the gate can select from
-            in_chan: Number of input channels, expected to be 2 * out_chan
-            out_chan: Number of output channels
+        Args:
+            num_experts (int): Number of experts, routing expects 5 of them
+            num_tasks (int): Number of tasks the gate can select from
+            in_chan (int): Number of input channels, expected to be 2 * out_chan
+            out_chan (int): Number of output channels
         """
         super().__init__()
         self.in_chan = in_chan
         self.out_chan = out_chan
         self.convt = torch.nn.Sequential(
-            torch.nn.ConvTranspose3d(
-                in_chan, out_chan, kernel_size=2, stride=2, bias=False
-            ),
+            torch.nn.ConvTranspose3d(in_chan, out_chan, kernel_size=2, stride=2, bias=False),
             nn.InstanceNorm3d(out_chan, affine=True),  # torch.nn.BatchNorm3d(out_chan),
             torch.nn.Mish(inplace=True),
         )
-        self.conv_less = MoDESubNet2Conv(num_experts, num_tasks, in_chan, out_chan)
+        self.conv_less = MoDESubNet2Conv3d(num_experts, num_tasks, in_chan, out_chan)
 
-    def forward(
-        self, x: torch.Tensor, x_skip: torch.Tensor, t: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, x_skip: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         """
         Upsample the input, concatenate the skip connection and convolve the result
-        Args
-            self: Decoder block instance
-            x: Input tensor with shape [B, in_chan, D, H, W]
-            x_skip: Skip tensor from the matching encoder block
-            t: One hot task encoding with shape [B, num_tasks]
-        Returns
+        Args:
+            x (torch.Tensor): Input tensor with shape [B, in_chan, D, H, W]
+            x_skip (torch.Tensor): Skip tensor from the matching encoder block
+            t (torch.Tensor): One hot task encoding with shape [B, num_tasks]
+        Returns:
             torch.Tensor: Output tensor with shape [B, out_chan, 2D, 2H, 2W]
         """
         x = self.convt(x)
@@ -166,7 +106,7 @@ class MoDEDecoderBlock(torch.nn.Module):
         return x_cat
 
 
-class MoDESubNet2Conv(torch.nn.Module):
+class MoDESubNet2Conv3d(torch.nn.Module):
     """
     Two stacked MoDE convolutions that keep the spatial dims
     """
@@ -174,29 +114,23 @@ class MoDESubNet2Conv(torch.nn.Module):
     def __init__(self, num_experts: int, num_tasks: int, n_in: int, n_out: int) -> None:
         """
         Build a subnet of two MoDE convolutions
-        Args
-            self: Subnet instance
-            num_experts: Number of experts, routing expects 5 of them
-            num_tasks: Number of tasks the gate can select from
-            n_in: Number of input channels
-            n_out: Number of output channels
+        Args:
+            num_experts (int): Number of experts, routing expects 5 of them
+            num_tasks (int): Number of tasks the gate can select from
+            n_in (int): Number of input channels
+            n_out (int): Number of output channels
         """
         super().__init__()
-        self.conv1 = MoDEConv(
-            num_experts, num_tasks, n_in, n_out, kernel_size=5, padding="same"
-        )
-        self.conv2 = MoDEConv(
-            num_experts, num_tasks, n_out, n_out, kernel_size=5, padding="same"
-        )
+        self.conv1 = MoDEConv3d(num_experts, num_tasks, n_in, n_out, kernel_size=5, padding="same")
+        self.conv2 = MoDEConv3d(num_experts, num_tasks, n_out, n_out, kernel_size=5, padding="same")
 
     def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         """
         Apply both MoDE convolutions in sequence
-        Args
-            self: Subnet instance
-            x: Input tensor with shape [B, n_in, D, H, W]
-            t: One hot task encoding with shape [B, num_tasks]
-        Returns
+        Args:
+            x (torch.Tensor): Input tensor with shape [B, n_in, D, H, W]
+            t (torch.Tensor): One hot task encoding with shape [B, num_tasks]
+        Returns:
             torch.Tensor: Output tensor with shape [B, n_out, D, H, W]
         """
         x = self.conv1(x, t)  # [b,16,64,64,64] #[...,32,32,32] ... 4,4,4
@@ -205,7 +139,7 @@ class MoDESubNet2Conv(torch.nn.Module):
         return x
 
 
-class MoDEConv(torch.nn.Module):
+class MoDEConv3d(torch.nn.Module):
     """
     Mixture of Diverse Experts convolution for 3d data
     """
@@ -223,16 +157,15 @@ class MoDEConv(torch.nn.Module):
     ) -> None:
         """
         Build a mixture of diverse experts convolution
-        Args
-            self: MoDEConv instance
-            num_experts: Number of experts, routing expects 5 of them
-            num_tasks: Number of tasks the gate can select from
-            in_chan: Number of input channels
-            out_chan: Number of output channels
-            kernel_size: Size of the expert kernels
-            stride: Stride of the convolution
-            padding: Padding mode passed to F.conv3d
-            conv_type: normal applies InstanceNorm and Mish, final skips them
+        Args:
+            num_experts (int): Number of experts, routing expects 5 of them
+            num_tasks (int): Number of tasks the gate can select from
+            in_chan (int): Number of input channels
+            out_chan (int): Number of output channels
+            kernel_size (int): Size of the expert kernels
+            stride (int): Stride of the convolution
+            padding (str): Padding mode passed to F.conv3d
+            conv_type (str): normal applies InstanceNorm and Mish, final skips them
         """
         super().__init__()
 
@@ -257,9 +190,7 @@ class MoDEConv(torch.nn.Module):
         self.subsequent_layer: nn.Module
         if self.conv_type == "normal":
             self.subsequent_layer = torch.nn.Sequential(
-                nn.InstanceNorm3d(
-                    out_chan, affine=True
-                ),  # torch.nn.BatchNorm3d(out_chan),
+                nn.InstanceNorm3d(out_chan, affine=True),  # torch.nn.BatchNorm3d(out_chan),
                 torch.nn.Mish(inplace=True),
             )
         else:
@@ -271,12 +202,11 @@ class MoDEConv(torch.nn.Module):
     def gen_conv_kernel(self, chans_out: int, chans_in: int, k_size: int) -> nn.Parameter:
         """
         Create an initialized expert kernel
-        Args
-            self: MoDEConv instance
-            chans_out: Number of output channels of the kernel
-            chans_in: Number of input channels of the kernel
-            k_size: Spatial size of the kernel
-        Returns
+        Args:
+            chans_out (int): Number of output channels of the kernel
+            chans_in (int): Number of input channels of the kernel
+            k_size (int): Spatial size of the kernel
+        Returns:
             nn.Parameter: Kernel with shape [chans_out, chans_in, k_size, k_size, k_size]
         """
         weight = torch.nn.Parameter(torch.empty(chans_out, chans_in, k_size, k_size, k_size))
@@ -286,10 +216,9 @@ class MoDEConv(torch.nn.Module):
     def gen_avgpool_kernel(self, k_size: int) -> torch.Tensor:
         """
         Create an average pooling kernel
-        Args
-            self: MoDEConv instance
-            k_size: Spatial size of the kernel
-        Returns
+        Args:
+            k_size (int): Spatial size of the kernel
+        Returns:
             torch.Tensor: Kernel with shape [k_size, k_size, k_size]
         """
         weight = torch.ones(k_size, k_size, k_size).mul(1.0 / k_size**3)
@@ -298,11 +227,10 @@ class MoDEConv(torch.nn.Module):
     def trans_kernel(self, kernel: torch.Tensor, target_size: int) -> torch.Tensor:
         """
         Pad an expert kernel symmetrically to the target spatial size
-        Args
-            self: MoDEConv instance
-            kernel: Kernel to pad
-            target_size: Target spatial size of the kernel
-        Returns
+        Args:
+            kernel (torch.Tensor): Kernel to pad
+            target_size (int): Target spatial size of the kernel
+        Returns:
             torch.Tensor: Padded kernel with spatial size target_size
         """
         depth_pad = (target_size - kernel.shape[2]) // 2
@@ -313,20 +241,17 @@ class MoDEConv(torch.nn.Module):
     def routing(self, g: torch.Tensor, batch_size: int) -> torch.Tensor:
         """
         Combine the expert kernels weighted by the gate output
-        Args
-            self: MoDEConv instance
-            g: Gate output with shape [batch_size, num_experts, out_chan]
-            batch_size: Number of samples in the batch
-        Returns
+        Args:
+            g (torch.Tensor): Gate output with shape [batch_size, num_experts, out_chan]
+            batch_size (int): Number of samples in the batch
+        Returns:
             torch.Tensor: Mixed kernels with shape [batch_size, out_chan, in_chan, K, K, K]
         """
         expert_conv5x5 = self.expert_conv5x5_conv
         expert_conv3x3 = self.trans_kernel(self.expert_conv3x3_conv, self.kernel_size)
         expert_conv1x1 = self.trans_kernel(self.expert_conv1x1_conv, self.kernel_size)
         expert_avg3x3 = self.trans_kernel(
-            torch.einsum(
-                "oidhw,dhw->oidhw", self.expert_avg3x3_conv, self.expert_avg3x3_pool
-            ),
+            torch.einsum("oidhw,dhw->oidhw", self.expert_avg3x3_conv, self.expert_avg3x3_pool),
             self.kernel_size,
         )
         expert_avg5x5 = torch.einsum(
@@ -350,11 +275,10 @@ class MoDEConv(torch.nn.Module):
     def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         """
         Convolve the input with the expert kernels mixed by the task gate
-        Args
-            self: MoDEConv instance
-            x: Input tensor with shape [B, in_chan, D, H, W]
-            t: One hot task encoding with shape [B, num_tasks]
-        Returns
+        Args:
+            x (torch.Tensor): Input tensor with shape [B, in_chan, D, H, W]
+            t (torch.Tensor): One hot task encoding with shape [B, num_tasks]
+        Returns:
             torch.Tensor: Output tensor with shape [B, out_chan, D, H, W]
         """
         batch_size = x.shape[0]  # batch size
@@ -366,17 +290,13 @@ class MoDEConv(torch.nn.Module):
         w = self.routing(g, batch_size)  # [b,x out chann, 1, 5,5,5] mix expert kernels
 
         y: torch.Tensor
-        if self.training:
-            outputs: list[torch.Tensor] = []
-            for i in range(batch_size):
-                outputs.append(
-                    F.conv3d(
-                        x[i].unsqueeze(0), w[i], bias=None, stride=1, padding="same"
-                    )
-                )
-            y = torch.cat(outputs, dim=0)
-        else:
-            y = F.conv3d(x, w[0], bias=None, stride=1, padding="same")
+        # grouped conv so every sample uses its own mixed kernel
+        spatial = x.shape[2:]
+        x_grouped = x.reshape(1, batch_size * self.in_chan, *spatial)
+        w_grouped = w.reshape(batch_size * self.out_chan, self.in_chan, *w.shape[-3:])
+        y = F.conv3d(
+            x_grouped, w_grouped, bias=None, stride=1, padding="same", groups=batch_size
+        ).view(batch_size, self.out_chan, *spatial)
 
         y = self.subsequent_layer(y)
 

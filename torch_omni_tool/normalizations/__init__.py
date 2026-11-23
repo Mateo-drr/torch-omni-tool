@@ -1,3 +1,3 @@
-from torch_omni_tool.normalizations.layern_norm_2d import LayerNorm
+from torch_omni_tool.normalizations.layer_norm_2d import LayerNorm2d
 
-__all__ = ["LayerNorm"]
+__all__ = ["LayerNorm2d"]

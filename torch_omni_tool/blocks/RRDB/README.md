@@ -1,63 +1,56 @@
 # RRDB
 
 Residual-in-Residual Dense Blocks from ESRGAN, in 2D and 3D. Useful as the trunk of
-super-resolution or restoration networks, and as a plain feature extractor.
+super-resolution or restoration networks.
 
-| Module | Classes | Input |
+| Class | File | Input |
 | --- | --- | --- |
-| [`RRDB_2D.py`](RRDB_2D.py) | `ResidualDenseBlock_5C`, `RRDB` | `[B, C, H, W]` |
-| [`RRDB_3d.py`](RRDB_3d.py) | `ResidualDenseBlock_5C_3D`, `RRDB_3D` | `[B, C, D, H, W]` |
+| `ResidualDenseBlock_5C_2d`, `RRDB2d` | [`RRDB_2d.py`](RRDB_2d.py) | `[B, C, H, W]` |
+| `ResidualDenseBlock_5C_3d`, `RRDB3d` | [`RRDB_3d.py`](RRDB_3d.py) | `[B, C, D, H, W]` |
 
-## `ResidualDenseBlock_5C` / `ResidualDenseBlock_5C_3D`
+## Source
 
-```python
-ResidualDenseBlock_5C(nf: int = 64, gc: int = 32, bias: bool = True)
-ResidualDenseBlock_5C_3D(nf: int = 64, gc: int = 32, bias: bool = True)
-```
+- **Paper:** Xintao Wang, Ke Yu, Shixiang Wu, Jinjin Gu, Yihao Liu, Chao Dong, Chen Change Loy,
+  Yu Qiao, Xiaoou Tang, *ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks*,
+  ECCV Workshops 2018 — [arXiv:1809.00219](https://arxiv.org/abs/1809.00219)
+- **Reference code:** `ResidualDenseBlock_5C` and `RRDB` in
+  [`xinntao/ESRGAN` `RRDBNet_arch.py`](https://github.com/xinntao/ESRGAN/blob/master/RRDBNet_arch.py).
+  The 2D blocks follow it directly (renamed with a `2d` suffix); the 3D blocks are the same
+  design with `Conv3d`.
 
-Five 3x3x3 convolutions with dense (concatenating) skip connections and `LeakyReLU(0.2)`
-between them. `nf` is the number of feature channels, `gc` the growth channels produced by
-each convolution. Convolutions 1-4 output `gc` channels and see the concatenation of the
-input with every previous output; convolution 5 maps back to `nf` channels. The result is
-residual-scaled and added to the input:
-
-```
-x5 = conv5(cat(x, x1, x2, x3, x4))
-out = 0.2 * x5 + x
-```
-
-The input and output shapes match, so blocks stack freely.
-
-## `RRDB` / `RRDB_3D`
+## `ResidualDenseBlock_5C_2d` / `ResidualDenseBlock_5C_3d`
 
 ```python
-RRDB(nf: int, gc: int = 32)
-RRDB_3D(nf: int, gc: int = 32)
+ResidualDenseBlock_5C_2d(nf: int = 64, gc: int = 32, bias: bool = True)
+ResidualDenseBlock_5C_3d(nf: int = 64, gc: int = 32, bias: bool = True)
 ```
 
-Three residual dense blocks in sequence, each with its own residual connection and the same
-`0.2` scaling, plus a residual connection around the whole stack:
+Five convolutions (3x3 in 2D, 3x3x3 in 3D) with dense connections and `LeakyReLU(0.2)`.
+Convolutions 1-4 output `gc` growth channels and see the concatenation of the input with every
+previous output; convolution 5 maps back to `nf` channels. The result is residual-scaled:
+
+```
+out = 0.2 * conv5(cat(x, x1, x2, x3, x4)) + x
+```
+
+## `RRDB2d` / `RRDB3d`
+
+```python
+RRDB2d(nf: int, gc: int = 32)
+RRDB3d(nf: int, gc: int = 32)
+```
+
+Three dense blocks in sequence plus a residual around the stack, again scaled by `0.2`.
 
 ```python
 import torch
-from torch_omni_tool.blocks.RRDB.RRDB_2D import RRDB
-from torch_omni_tool.blocks.RRDB.RRDB_3d import RRDB_3D
+from torch_omni_tool.blocks.RRDB import RRDB2d, RRDB3d
 
-y2d = RRDB(nf=64, gc=32)(torch.randn(1, 64, 32, 32))  # [1, 64, 32, 32]
-y3d = RRDB_3D(nf=32, gc=16)(torch.randn(1, 32, 8, 8, 8))  # [1, 32, 8, 8, 8]
+y2d = RRDB2d(nf=64, gc=32)(torch.randn(1, 64, 32, 32))  # [1, 64, 32, 32]
+y3d = RRDB3d(nf=32, gc=16)(torch.randn(1, 32, 8, 8, 8))  # [1, 32, 8, 8, 8]
 ```
 
 ## Caveats
 
-- All convolutions are `kernel=3, stride=1, padding=1`, so spatial size is preserved and
-  `nf` must stay constant across a stack.
-- `nf` has no default on `RRDB` / `RRDB_3D` (only on the inner dense blocks) — pass it
-  explicitly.
-- The 3D variant needs a 5D input; the 2D one a 4D input.
-- These are the building blocks only: no upsampling, no pixel-shuffle, no discriminator.
-
-## References
-
-- Wang et al., *ESRGAN: Photo-Realistic Single Image Super-Resolution Using a Generative
-  Adversarial Network* — [arXiv:1809.00219](https://arxiv.org/abs/1809.00219)
-- Code — [github.com/xinntao/ESRGAN](https://github.com/xinntao/ESRGAN)
+- All convolutions use `stride=1, padding=1`, so shapes are preserved and blocks stack freely.
+- Only the building blocks are provided: no upsampling, pixel shuffle or discriminator.

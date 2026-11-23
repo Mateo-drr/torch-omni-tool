@@ -30,7 +30,7 @@ jobs:
           pip install -e ".[docs]"
 
       - name: Build site
-        run: mkdocs build --strict
+        run: zensical build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Oct 12 2026
-
 @author: Mateo-drr
 """
 
@@ -31,12 +30,10 @@ class _Patch:
 def _disk_mask(diameter: int) -> torch.Tensor:
     """
     Build a circular mask inscribed in a square of the given side
-
-    Args
-        diameter: Side of the square the circle is inscribed in
-    Returns
-        torch.Tensor: Float mask with shape [diameter, diameter], 1 inside the
-            circle and 0 outside
+    Args:
+        diameter (int): Side of the square the circle is inscribed in
+    Returns:
+        torch.Tensor: Float mask with shape [diameter, diameter], 1 inside the circle and 0 outside
     """
     coords = torch.arange(diameter, dtype=torch.float32) - (diameter - 1) / 2
     yy, xx = torch.meshgrid(coords, coords, indexing="ij")
@@ -51,11 +48,10 @@ def _rotate_region(
 ) -> None:
     """
     Rotate a circular region of a tensor in place, keeping the surrounding ring
-
-    Args
-        data: Tensor whose last two dimensions are spatial, mutated in place
-        patch: Location, angle and masks of the circular region to rotate
-        interpolation: Interpolation used while rotating
+    Args:
+        data (torch.Tensor): Tensor whose last two dimensions are spatial, mutated in place
+        patch (_Patch): Location, angle and masks of the circular region to rotate
+        interpolation (InterpolationMode): Interpolation used while rotating
     """
     box = (
         Ellipsis,
@@ -99,24 +95,20 @@ def random_local_rotation_2d(
     """
     Rotate a random circular patch of a batch of 2D images, optionally together with its labels
     Reference: https://www.mdpi.com/2313-433X/9/2/46
-    Args
-        in_tensor: Batch of images with shape [b, c, h, w]
-        label: Optional batch of label masks with shape [b, h, w]. When None only
-            the input tensor is augmented
-        radius: Radius of the circular area that gets rotated
-        p: Probability of applying the augmentation to each sample
-    Returns
-        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: Rotated image batch when
-            label is None, otherwise the rotated image batch and label batch
+    Args:
+        in_tensor (torch.Tensor): Batch of images with shape [b, c, h, w]
+        label (torch.Tensor | None): Optional batch of label masks with shape [b, h, w]. When None
+            only the input tensor is augmented
+        radius (int): Radius of the circular area that gets rotated
+        p (float): Probability of applying the augmentation to each sample
+    Returns:
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: Rotated image batch when label is None,
+            otherwise the rotated image batch and label batch
     """
     if in_tensor.ndim != 4:
-        raise ValueError(
-            f"in_tensor must be 4D with shape [b, c, h, w], got {in_tensor.ndim}D"
-        )
+        raise ValueError(f"in_tensor must be 4D with shape [b, c, h, w], got {in_tensor.ndim}D")
     if label is not None and label.ndim != 3:
-        raise ValueError(
-            f"label must be 3D with shape [b, h, w], got {label.ndim}D"
-        )
+        raise ValueError(f"label must be 3D with shape [b, h, w], got {label.ndim}D")
 
     b, _, h, w = in_tensor.shape
     diameter = radius * 2

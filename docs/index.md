@@ -19,7 +19,7 @@ Optional extras:
 | Extra | Adds |
 | --- | --- |
 | `.[dev]` | `pytest`, `pylint`, `mypy`, `black`, `types-tqdm` |
-| `.[docs]` | MkDocs, Material theme and mkdocstrings |
+| `.[docs]` | Zensical and mkdocstrings |
 
 Requires Python >= 3.12.
 
@@ -45,11 +45,11 @@ y = GRN(64)(x)          # [2, 64, 56, 56]
 
     [:octicons-arrow-right-24: Reference](api/torch_omni_tool.blocks.md)
 
--   :material-tune-variant:{ .lg .middle } __Normalizations__
+- :material-tune-variant:{ .lg .middle } __Normalizations__
 
     ---
 
-    `LayerNorm` for `[b, c, h, w]` and `[b, h, w, c]` inputs.
+    `LayerNorm2d` for `[b, c, h, w]` and `[b, h, w, c]` inputs.
 
     [:octicons-arrow-right-24: Reference](api/torch_omni_tool.normalizations.md)
 

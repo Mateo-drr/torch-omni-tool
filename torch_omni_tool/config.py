@@ -2,7 +2,6 @@
 """
 Configuration used for the model
 Created on Sun Oct 04 21:15:35 2026
-
 @author: Mateo-drr
 """
 

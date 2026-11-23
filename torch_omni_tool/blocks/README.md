@@ -1,42 +1,28 @@
 # Blocks
 
-Reusable `nn.Module` blocks. Each block lives in its own folder next to an empty
-`__init__.py`, so imports go through the leaf module:
+Reusable `nn.Module` blocks, one folder per block family. Classes are exported by their folder,
+so import paths mirror the tree:
 
 ```python
-from torch_omni_tool.blocks.SEB.SEB import SEBlock
+from torch_omni_tool.blocks.RRDB import RRDB3d
+from torch_omni_tool.blocks.RepMoDE import MoDEConv3d
+from torch_omni_tool.blocks.SEB import SEBlock
 ```
 
 ## Available blocks
 
-| Folder | Module | Classes | Spatial dims | Original source |
-| --- | --- | --- | --- | --- |
-| [ConvNeXtV2/](ConvNeXtV2/README.md) | `ConvNeXtV2.py` | `ConvNeXtBlock` | 2D | [ConvNeXt V2](https://arxiv.org/abs/2301.03524) |
-| [ConvNeXtV2/](ConvNeXtV2/README.md) | `GRN.py` | `GRN` | 2D | [ConvNeXt V2](https://arxiv.org/abs/2301.03524) |
-| [RepMoDE/](RepMoDE/README.md) | `RepMoDE_2d.py` | `MoDE`, `MoDEConv2D` | 2D | [RepMode (CVPR 2023)](https://arxiv.org/abs/2212.10066) |
-| [RepMoDE/](RepMoDE/README.md) | `RepMoDE_1d.py` | `MoDEConv`, `MoDEEncoderBlock`, `MoDESubNet2Conv`, `MoDEDecoderBlock` | 1D (causal option) | [RepMode (CVPR 2023)](https://arxiv.org/abs/2212.10066) |
-| [RepMoDE/](RepMoDE/README.md) | `RepMoDE_3d.py` | `MoDEConv`, `MoDEEncoderBlock`, `MoDESubNet2Conv`, `MoDEDecoderBlock` | 3D | [RepMode (CVPR 2023)](https://arxiv.org/abs/2212.10066) |
-| [RRDB/](RRDB/README.md) | `RRDB_2D.py` | `ResidualDenseBlock_5C`, `RRDB` | 2D | [ESRGAN](https://arxiv.org/abs/1809.00219) |
-| [RRDB/](RRDB/README.md) | `RRDB_3d.py` | `ResidualDenseBlock_5C_3D`, `RRDB_3D` | 3D | [ESRGAN](https://arxiv.org/abs/1809.00219) |
-| [SEB/](SEB/README.md) | `SEB.py` | `SEBlock` | 2D | [SENet](https://arxiv.org/abs/1709.01507) |
-| [ViT/](ViT/README.md) | `position_embedding_sine.py` | `PositionEmbeddingSine` | 2D | [DETR](https://arxiv.org/abs/2005.12872) |
+| Folder | Classes | Data | Source |
+| --- | --- | --- | --- |
+| [ConvNeXtV2/](ConvNeXtV2/README.md) | `ConvNeXtBlock`, `GRN1d`, `GRN2d`, `GRN3d` | 2D (GRN: 1D, 2D, 3D) | ConvNeXt ([paper](https://arxiv.org/abs/2201.03545), [code](https://github.com/facebookresearch/ConvNeXt)), ConvNeXt V2 ([paper](https://arxiv.org/abs/2301.00808), [code](https://github.com/facebookresearch/ConvNeXt-V2)) |
+| [RepMoDE/](RepMoDE/README.md) | `MoDE`, `MoDEConv{1d,2d,3d}`, `MoDE{Encoder,Decoder}Block{1d,3d}`, `MoDESubNet2Conv{1d,3d}` | 1D, 2D, 3D | RepMode ([paper](https://arxiv.org/abs/2212.10066), [code](https://github.com/correr-zhou/RepMode)) |
+| [RRDB/](RRDB/README.md) | `RRDB2d`, `RRDB3d`, `ResidualDenseBlock_5C_2d`, `ResidualDenseBlock_5C_3d` | 2D, 3D | ESRGAN ([paper](https://arxiv.org/abs/1809.00219), [code](https://github.com/xinntao/ESRGAN)) |
+| [SEB/](SEB/README.md) | `SEBlock` | 2D | SENet ([paper](https://arxiv.org/abs/1709.01507), [code](https://github.com/hujie-frank/SENet)) |
+| [ViT/](ViT/README.md) | `PositionEmbeddingSine` | 2D | DETR ([paper](https://arxiv.org/abs/2005.12872), [code](https://github.com/facebookresearch/detr)) |
+
+Each folder README lists the full citation and how the implementation differs from the
+reference code.
 
 ## Things to know
 
-- **Pick the variant that matches your data.** `RepMoDE` and `RRDB` come in 1d / 2d / 3d
-  flavours; a 2d block will not accept a 5D volume.
-- **Class names collide across variants.** `MoDEConv` exists in both `RepMoDE_1d` and
-  `RepMoDE_3d`, so alias them when importing more than one:
-
-  ```python
-  from torch_omni_tool.blocks.RepMoDE.RepMoDE_1d import MoDEConv as MoDEConv1d
-  from torch_omni_tool.blocks.RepMoDE.RepMoDE_3d import MoDEConv as MoDEConv3d
-  ```
-
-- **Casing is inconsistent** (`RRDB_2D.py` vs `RRDB_3d.py`), and so is the order of the
-  dimension arguments — always check the docstring of the leaf module.
-- **`conv_type` / `padding` are strings, not enums.** `conv_type="normal"` adds
-  InstanceNorm + Mish, anything else (e.g. `"final"`) skips them; `padding` is forwarded
-  straight to `F.conv*d`.
-- Nothing here registers itself globally: blocks are plain modules and can be reused across
-  models and projects.
+- **Pick the variant that matches your data.** Classes with dimension variants end in `1d`,
+  `2d` or `3d` (like `nn.Conv2d`), files in `_1d.py`, `_2d.py` or `_3d.py`.

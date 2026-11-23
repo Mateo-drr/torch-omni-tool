@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Jul 26 17:13:55 2024
-
 @author: Mateo-drr
 """
 
@@ -17,8 +16,6 @@ class SampleNet(nn.Module):
     def __init__(self) -> None:
         """
         Build the sample model
-        Args
-            self: SampleNet instance
         """
         super().__init__()
         self.fc1 = nn.Linear(16, 5)
@@ -27,10 +24,9 @@ class SampleNet(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Apply both linear layers with a ReLU in between
-        Args
-            self: SampleNet instance
-            x: Input tensor with shape [B, ..., 16]
-        Returns
+        Args:
+            x (torch.Tensor): Input tensor with shape [B, ..., 16]
+        Returns:
             torch.Tensor: Output tensor with shape [B, ..., 16]
         """
         x = torch.relu(self.fc1(x))

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sun Oct 04 21:15:35 2026
-
 @author: Mateo-drr
 """
 
@@ -24,11 +23,11 @@ class PositionEmbeddingSine(nn.Module):
     ) -> None:
         """
         Build a sine positional embedding
-        Args
-            self: Positional embedding instance
-            temperature: Temperature of the sinusoidal embedding
-            normalize: Whether the coordinate grids are normalized to [0, scale]
-            scale: Scale of the coordinates, defaults to 2 * pi, only valid when normalize is True
+        Args:
+            temperature (float): Temperature of the sinusoidal embedding
+            normalize (bool): Whether the coordinate grids are normalized to [0, scale]
+            scale (float | None): Scale of the coordinates, defaults to 2 * pi, only valid when
+                normalize is True
         """
         super().__init__()
         self.temperature = temperature
@@ -42,10 +41,10 @@ class PositionEmbeddingSine(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Build the sine and cosine encoding of the spatial coordinates
-        Args
-            self: Positional embedding instance
-            x: Input tensor with shape [B, C, H, W], used for device and channel count
-        Returns
+        Args:
+            x (torch.Tensor): Input tensor with shape [B, C, H, W], used for device and channel
+                count
+        Returns:
             torch.Tensor: Positional embedding with shape [B, C, H, W]
         """
         b, c, h, w = x.shape
@@ -79,7 +78,5 @@ class PositionEmbeddingSine(nn.Module):
             (pos_y[:, :, :, 0::2].sin(), pos_y[:, :, :, 1::2].cos()), dim=4
         ).flatten(3)
 
-        pos = torch.cat((pos_y, pos_x), dim=3).permute(
-            0, 3, 1, 2
-        )  # [B, 2*num_pos_feats, H, W]
+        pos = torch.cat((pos_y, pos_x), dim=3).permute(0, 3, 1, 2)  # [B, 2*num_pos_feats, H, W]
         return pos[:, :c, :, :]  # slice back to exactly c channels

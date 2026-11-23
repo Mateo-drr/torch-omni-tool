@@ -2,7 +2,6 @@
 """
 Train and Eval loops
 Created on Sun Oct 04 21:15:35 2026
-
 @author: Mateo-drr
 """
 
@@ -25,12 +24,13 @@ def run_model(
 ) -> dict[str, Any]:
     """
     Run the model on the given input samples
-    Args
-        model: Model to run
-        samples: Batch of samples, the input is expected under the data key
-        criterion: Loss function, the input is used as the target
-        config: Config holding the device
-    Returns
+    Args:
+        model (nn.Module): Model to run
+        samples (dict[str, torch.Tensor]): Batch of samples, the input is expected under the data
+            key
+        criterion (nn.Module): Loss function, the input is used as the target
+        config (Config): Config holding the device
+    Returns:
         dict[str, Any]: Loss, input data and model output
     """
     # Move data to device
@@ -60,16 +60,17 @@ def train_loop(
 ) -> None:
     """
     Train the model for one epoch
-    Args
-        model: Model to train
-        train_dl: Dataloader over the training split
-        criterion: Loss function
-        optim: Optimizer
-        scaler: GradScaler used for the mixed precision backward pass
-        wb_metrics: Metrics dictionary that holds the epoch results
-        config: Config holding the device, mixed precision and grad clipping options
-        epoch: Current epoch, 0 based
-        scheduler: Scheduler stepped at the end of the epoch
+    Args:
+        model (nn.Module): Model to train
+        train_dl (DataLoader[dict[str, Any]]): Dataloader over the training split
+        criterion (nn.Module): Loss function
+        optim (torch.optim.Optimizer): Optimizer
+        scaler (torch.amp.GradScaler): GradScaler used for the mixed precision backward pass
+        wb_metrics (dict[str, dict[str, Any]]): Metrics dictionary that holds the epoch results
+        config (Config): Config holding the device, mixed precision and grad clipping options
+        epoch (int): Current epoch, 0 based
+        scheduler (torch.optim.lr_scheduler.LRScheduler | None): Scheduler stepped at the end of the
+            epoch
     """
     model.train()
     results: defaultdict[str, list[Any]] = defaultdict(list)
@@ -80,10 +81,12 @@ def train_loop(
             with torch.amp.autocast(device_type=config.device):
                 outputs = run_model(model, sample, criterion, config)
 
-                scaler.scale(outputs["loss"]).backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
-                scaler.step(optim)
-                scaler.update()
+            scaler.scale(outputs["loss"]).backward()
+            # unscale first so clipping sees the true gradient norm
+            scaler.unscale_(optim)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), config.grad_clip)
+            scaler.step(optim)
+            scaler.update()
         else:
             outputs = run_model(model, sample, criterion, config)
             outputs["loss"].backward()
@@ -110,13 +113,13 @@ def eval_loop(
 ) -> None:
     """
     Evaluate the model without computing gradients
-    Args
-        model: Model to evaluate
-        dataloader: Dataloader over the split being evaluated
-        criterion: Loss function
-        eval_name: Evaluation name being run, e.g. valid
-        wb_metrics: Metrics dictionary that holds the epoch results
-        config: Config holding the device and the mixed precision option
+    Args:
+        model (nn.Module): Model to evaluate
+        dataloader (DataLoader[dict[str, Any]]): Dataloader over the split being evaluated
+        criterion (nn.Module): Loss function
+        eval_name (str): Evaluation name being run, e.g. valid
+        wb_metrics (dict[str, dict[str, Any]]): Metrics dictionary that holds the epoch results
+        config (Config): Config holding the device and the mixed precision option
     """
     model.eval()
     results: defaultdict[str, list[Any]] = defaultdict(list)

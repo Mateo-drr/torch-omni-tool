@@ -1,4 +1,4 @@
-from torch_omni_tool.blocks.RRDB.RRDB_2D import ResidualDenseBlock_5C, RRDB
-from torch_omni_tool.blocks.RRDB.RRDB_3d import ResidualDenseBlock_5C_3D, RRDB_3D
+from torch_omni_tool.blocks.RRDB.RRDB_2d import RRDB2d, ResidualDenseBlock_5C_2d
+from torch_omni_tool.blocks.RRDB.RRDB_3d import RRDB3d, ResidualDenseBlock_5C_3d
 
-__all__ = ["ResidualDenseBlock_5C", "RRDB", "ResidualDenseBlock_5C_3D", "RRDB_3D"]
+__all__ = ["RRDB2d", "RRDB3d", "ResidualDenseBlock_5C_2d", "ResidualDenseBlock_5C_3d"]

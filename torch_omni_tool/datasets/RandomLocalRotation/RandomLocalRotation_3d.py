@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sun Oct 04 21:15:35 2026
-
 @author: Mateo-drr
 """
 
@@ -11,7 +10,6 @@ from typing import overload
 import numpy as np
 import torch
 import torchvision.transforms.functional as tf
-import copy
 
 from PIL import Image, ImageDraw
 
@@ -43,15 +41,15 @@ def random_local_rotation_3d(
     """
     Rotate a random circular patch of the input, optionally together with its label
     Reference: https://www.mdpi.com/2313-433X/9/2/46
-    Args
-        in_tensor: Input chunk with shape [b, 1, h, w]
-        tlbl: Optional label mask with shape [h, w]. When None only the input
+    Args:
+        in_tensor (torch.Tensor): Input chunk with shape [b, 1, h, w]
+        tlbl (torch.Tensor | None): Optional label mask with shape [h, w]. When None only the input
             chunk is augmented
-        radius: Radius of the circular area that gets rotated
-        p: Probability of applying the augmentation
-    Returns
-        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: Rotated chunk when tlbl
-            is None, otherwise the rotated chunk and rotated label mask
+        radius (int): Radius of the circular area that gets rotated
+        p (float): Probability of applying the augmentation
+    Returns:
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: Rotated chunk when tlbl is None, otherwise
+            the rotated chunk and rotated label mask
     """
     if random.random() < p:
         diameter = radius * 2
@@ -59,7 +57,8 @@ def random_local_rotation_3d(
             x, y = in_tensor.shape[-2:]
         else:
             x, y = tlbl.shape
-        # get a random point to rotate. this point is the top corner of the square area to be rotated
+        # get a random point to rotate
+        # this point is the top corner of the square area to be rotated
         xcenter = random.randint(
             0, (x - diameter)
         )  # random.choice(idk)#np.random.randint(0,32)#random.randint(0,x-diameter)
@@ -98,82 +97,20 @@ def random_local_rotation_3d(
         # ROTATE CHUNK
         # place the circle in the image
         circCrop = (
-                in_tensor[:, :, xcenter: xcenter + diameter, ycenter: ycenter + diameter] * circmaks
+            in_tensor[:, :, xcenter : xcenter + diameter, ycenter : ycenter + diameter] * circmaks
         )
         # rotate circular crop
         circCrop = tf.rotate(circCrop, ang)
         # get surrounding crop
         invCircCrop = (
-                in_tensor[:, :, xcenter: xcenter + diameter, ycenter: ycenter + diameter]
-                * invcircmask
+            in_tensor[:, :, xcenter : xcenter + diameter, ycenter : ycenter + diameter]
+            * invcircmask
         )
         # place the rotated circle back
-        in_tensor[:, :, xcenter: xcenter + diameter, ycenter: ycenter + diameter] = (
+        in_tensor[:, :, xcenter : xcenter + diameter, ycenter : ycenter + diameter] = (
             circCrop + invCircCrop
         )
 
     if tlbl is None:
         return in_tensor
     return in_tensor, tlbl
-
-
-def cutmix(
-    chunks: torch.Tensor, lbls: torch.Tensor, mask_size: int = 32
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """
-    Swap a random cubic patch between two adjacent samples of the batch
-    Reference: https://arxiv.org/pdf/1905.04899.pdf
-    Args
-        chunks: Batch of chunks with shape [b, 1, 64, 64, 64]
-        lbls: Batch of label masks with shape [b, 64, 64]
-        mask_size: Size of the cubic patch that gets swapped
-    Returns
-        tuple[torch.Tensor, torch.Tensor]: Chunks and label masks with the patch swapped
-    """
-    idx1 = random.randint(0, chunks.shape[0] - 2)
-    idx2 = idx1 + 1
-
-    mask_dims = (mask_size, mask_size, mask_size)
-    # Randomly choose a position for the mask
-    depth, height, width = chunks[idx1].shape[1:]
-    d_start = random.randint(0, depth - mask_dims[0])
-    h_start = random.randint(0, height - mask_dims[1])
-    w_start = random.randint(0, width - mask_dims[2])
-
-    tchunk = copy.deepcopy(chunks[idx1])
-    # put crop in chunk1
-    chunks[idx1][
-        :,
-        d_start : d_start + mask_dims[0],
-        h_start : h_start + mask_dims[1],
-        w_start : w_start + mask_dims[2],
-    ] = chunks[idx2][
-        :,
-        d_start : d_start + mask_dims[0],
-        h_start : h_start + mask_dims[1],
-        w_start : w_start + mask_dims[2],
-    ]
-    # put crop in chunk2
-    chunks[idx2][
-        :,
-        d_start : d_start + mask_dims[0],
-        h_start : h_start + mask_dims[1],
-        w_start : w_start + mask_dims[2],
-    ] = tchunk[
-        :,
-        d_start : d_start + mask_dims[0],
-        h_start : h_start + mask_dims[1],
-        w_start : w_start + mask_dims[2],
-    ]
-
-    tlbl = copy.deepcopy(lbls[idx1])
-    # put crop in label1
-    lbls[idx1][h_start : h_start + mask_dims[1], w_start : w_start + mask_dims[2]] = (
-        lbls[idx2][h_start : h_start + mask_dims[1], w_start : w_start + mask_dims[2]]
-    )
-    # put crop in label2
-    lbls[idx2][h_start : h_start + mask_dims[1], w_start : w_start + mask_dims[2]] = (
-        tlbl[h_start : h_start + mask_dims[1], w_start : w_start + mask_dims[2]]
-    )
-
-    return chunks, lbls

@@ -1,4 +1,6 @@
-"""Tests for the local rotation augmentations in ``torch_omni_tool.datasets``."""
+"""
+Tests for the local rotation augmentations in ``torch_omni_tool.datasets.RandomLocalRotation``.
+"""
 
 import random
 
@@ -6,7 +8,7 @@ import pytest
 import torch
 from torch.testing import assert_close
 
-from torch_omni_tool.datasets import (
+from torch_omni_tool.datasets.RandomLocalRotation import (
     random_local_rotation_2d,
     random_local_rotation_3d,
 )

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sun Oct 04 21:15:35 2026
-
 @author: Mateo-drr
 """
 
@@ -29,20 +28,21 @@ class MoDE(nn.Module):
     ) -> None:
         """
         Build a MoDEConv2d wrapper
-        Args
-            self: MoDE wrapper instance
-            in_chans: Number of input channels
-            out_chans: Number of output channels
-            num_tasks: Number of tasks. An additional global task is added internally, with id 0
-            global_task_train_prob: Probability of a task being swapped for the global task id
-            global_task_id: Id of the global task
+        Args:
+            in_chans (int): Number of input channels
+            out_chans (int): Number of output channels
+            num_tasks (int): Number of tasks. An additional global task is added internally, with id
+                0
+            global_task_train_prob (float): Probability of a task being swapped for the global task
+                id
+            global_task_id (int): Id of the global task
         """
         super().__init__()
 
         self.num_tasks = num_tasks + 1  # additional global task
         self.global_task_id = global_task_id
         self.global_task_train_prob = global_task_train_prob
-        self.mode = MoDEConv2D(
+        self.mode = MoDEConv2d(
             num_experts=5,
             num_tasks=self.num_tasks,
             in_chan=in_chans,
@@ -56,10 +56,9 @@ class MoDE(nn.Module):
     def get_task_weights(self, task_id: int | None = None) -> dict[int, np.ndarray]:
         """
         Extract learned gating weights for a specific task or for every task
-        Args
-            self: MoDE wrapper instance
-            task_id: Id of the task, None returns the weights of every task
-        Returns
+        Args:
+            task_id (int | None): Id of the task, None returns the weights of every task
+        Returns:
             dict[int, np.ndarray]: Gating weights of shape [num_experts, out_chan] keyed by task id
         """
         weights: dict[int, np.ndarray] = {}
@@ -82,9 +81,7 @@ class MoDE(nn.Module):
 
             # Get gating weights
             g = self.mode.gate(t)  # [1, num_experts * out_chan]
-            g = g.view(
-                self.mode.num_experts, self.mode.out_chan
-            )  # [num_experts, out_chan]
+            g = g.view(self.mode.num_experts, self.mode.out_chan)  # [num_experts, out_chan]
             g = self.mode.softmax(g.unsqueeze(0)).squeeze(0)  # Apply softmax
 
             weights[tid] = g.detach().cpu().numpy()
@@ -96,13 +93,14 @@ class MoDE(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Route the input through the experts of the given task ids
-        Args
-            self: MoDE wrapper instance
-            x: Input tensor with shape [B, in_chans, H, W]
-            task_id: Task id of every sample with shape [B]
-            grouped: Whether the grouped convolution is used instead of one convolution per sample
-        Returns
-            tuple[torch.Tensor, torch.Tensor]: Output tensor [B, out_chans, H, W] and the used task ids
+        Args:
+            x (torch.Tensor): Input tensor with shape [B, in_chans, H, W]
+            task_id (torch.Tensor): Task id of every sample with shape [B]
+            grouped (bool): Whether the grouped convolution is used instead of one convolution per
+                sample
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: Output tensor [B, out_chans, H, W] and the used task
+                ids
         """
         # During training, randomly use global task
         if self.training:
@@ -122,7 +120,7 @@ class MoDE(nn.Module):
         return x, task_id
 
 
-class MoDEConv2D(torch.nn.Module):
+class MoDEConv2d(torch.nn.Module):
     """
     Mixture of Diverse Experts for 2d
     """
@@ -140,16 +138,15 @@ class MoDEConv2D(torch.nn.Module):
     ) -> None:
         """
         Build a mixture of diverse experts convolution
-        Args
-            self: MoDEConv2D instance
-            num_experts: Number of experts, routing expects 5 of them
-            num_tasks: Number of tasks the gate can select from
-            in_chan: Number of input channels
-            out_chan: Number of output channels
-            kernel_size: Size of the expert kernels
-            stride: Stride of the convolution
-            padding: Padding mode passed to F.conv2d
-            conv_type: normal applies InstanceNorm and Mish, any other value skips them
+        Args:
+            num_experts (int): Number of experts, routing expects 5 of them
+            num_tasks (int): Number of tasks the gate can select from
+            in_chan (int): Number of input channels
+            out_chan (int): Number of output channels
+            kernel_size (int): Size of the expert kernels
+            stride (int): Stride of the convolution
+            padding (str): Padding mode passed to F.conv2d
+            conv_type (str): normal applies InstanceNorm and Mish, any other value skips them
         """
         super().__init__()
 
@@ -192,11 +189,11 @@ class MoDEConv2D(torch.nn.Module):
     def gen_conv_kernel(chans_out: int, chans_in: int, k_size: int) -> nn.Parameter:
         """
         Create an initialized expert kernel
-        Args
-            chans_out: Number of output channels of the kernel
-            chans_in: Number of input channels of the kernel
-            k_size: Spatial size of the kernel
-        Returns
+        Args:
+            chans_out (int): Number of output channels of the kernel
+            chans_in (int): Number of input channels of the kernel
+            k_size (int): Spatial size of the kernel
+        Returns:
             nn.Parameter: Kernel with shape [chans_out, chans_in, k_size, k_size]
         """
         weight = nn.Parameter(torch.empty(chans_out, chans_in, k_size, k_size))
@@ -207,9 +204,9 @@ class MoDEConv2D(torch.nn.Module):
     def gen_avg_pool_kernel(kernel_size: int) -> torch.Tensor:
         """
         Create an average pooling kernel
-        Args
-            kernel_size: Spatial size of the kernel
-        Returns
+        Args:
+            kernel_size (int): Spatial size of the kernel
+        Returns:
             torch.Tensor: Kernel with shape [kernel_size, kernel_size]
         """
         return torch.ones(kernel_size, kernel_size).mul(1.0 / kernel_size**2)
@@ -218,10 +215,10 @@ class MoDEConv2D(torch.nn.Module):
     def trans_kernel(kernel: torch.Tensor, target_size: int) -> torch.Tensor:
         """
         Pad an expert kernel symmetrically to the target spatial size
-        Args
-            kernel: Kernel to pad
-            target_size: Target spatial size of the kernel
-        Returns
+        Args:
+            kernel (torch.Tensor): Kernel to pad
+            target_size (int): Target spatial size of the kernel
+        Returns:
             torch.Tensor: Padded kernel with spatial size target_size
         """
         pad = (target_size - kernel.shape[2]) // 2
@@ -230,11 +227,10 @@ class MoDEConv2D(torch.nn.Module):
     def routing(self, g: torch.Tensor, batch_size: int) -> torch.Tensor:
         """
         Combine the expert kernels weighted by the gate output
-        Args
-            self: MoDEConv2D instance
-            g: Gate output with shape [batch_size, num_experts, out_chan]
-            batch_size: Number of samples in the batch
-        Returns
+        Args:
+            g (torch.Tensor): Gate output with shape [batch_size, num_experts, out_chan]
+            batch_size (int): Number of samples in the batch
+        Returns:
             torch.Tensor: Mixed kernels with shape [batch_size, out_chan, in_chan, K, K]
         """
         # Resize and combine expert kernels with gate weights
@@ -243,9 +239,7 @@ class MoDEConv2D(torch.nn.Module):
         expert_conv1x1 = self.trans_kernel(self.expert_conv1x1_conv, self.kernel_size)
 
         expert_avg3x3 = self.trans_kernel(
-            torch.einsum(
-                "oihw,hw->oihw", self.expert_avg3x3_conv, self.expert_avg3x3_pool
-            ),
+            torch.einsum("oihw,hw->oihw", self.expert_avg3x3_conv, self.expert_avg3x3_pool),
             self.kernel_size,
         )
         expert_avg5x5 = torch.einsum(
@@ -264,17 +258,14 @@ class MoDEConv2D(torch.nn.Module):
             weights.append(w)
         return torch.stack(weights)
 
-    def forward(
-        self, x: torch.Tensor, t: torch.Tensor, grouped: bool = True
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, t: torch.Tensor, grouped: bool = True) -> torch.Tensor:
         """
         Convolve the input with the expert kernels mixed by the task gate
-        Args
-            self: MoDEConv2D instance
-            x: Input tensor with shape [B, in_chan, H, W]
-            t: One hot task encoding with shape [B, num_tasks]
-            grouped: Whether a single grouped convolution is used instead of one per sample
-        Returns
+        Args:
+            x (torch.Tensor): Input tensor with shape [B, in_chan, H, W]
+            t (torch.Tensor): One hot task encoding with shape [B, num_tasks]
+            grouped (bool): Whether a single grouped convolution is used instead of one per sample
+        Returns:
             torch.Tensor: Output tensor with shape [B, out_chan, H, W]
         """
         batch_size = x.shape[0]  # batch size
